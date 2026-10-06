@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Editor / OS
+.DS_Store
+*.swp
+
+# Source PDFs (large binaries)
+docs/pdfs/
+
+# Generated analysis outputs (data + binaries)
+analysis/
+
+# Work scratch / generated
+work/input/
+work/*.log
+work/pilot/
+work/pilot_marker/
+work/pilot_conf/
+work/pilot_report/
+work/_explore*.py

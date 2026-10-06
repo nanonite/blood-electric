@@ -1,0 +1,1298 @@
+{
+  "version": 1,
+  "exported_at": "2026-10-02T22:18:50.682276280+00:00",
+  "issues": [
+    {
+      "id": 76,
+      "title": "Anti-pattern guardrails audit",
+      "description": "Audit for hallucinated coherence, LLM circularity (same model translating and judging), over-correction, single-method certainty, and residue-dropping. DONE: guardrail checklist + audit results, wired into CI-style checks.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.993355627+00:00",
+      "updated_at": "2026-10-02T22:17:46.993355627+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 75,
+      "title": "Human jury / reader study design",
+      "description": "Have readers rate glosses for fidelity to the felt text; design the instrument and sampling. DONE: study protocol + pilot results if available.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.977862396+00:00",
+      "updated_at": "2026-10-02T22:17:46.977862396+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 74,
+      "title": "Back-translation harness",
+      "description": "Gloss -> regenerate a Siratori-style clause -> compare to original. DONE: harness + fidelity scores.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.961060853+00:00",
+      "updated_at": "2026-10-02T22:17:46.961060853+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 73,
+      "title": "Triangulation / convergence report",
+      "description": "Do independent methods (network community, topic model, embedding cluster, periodicity) converge on the same motifs/domains? Convergence is evidence; divergence is a lead. DONE: convergence matrix + report.",
+      "status": "open",
+      "priority": "critical",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.943806962+00:00",
+      "updated_at": "2026-10-02T22:17:46.943806962+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 72,
+      "title": "Predictive validity on held-out text",
+      "description": "Does the derived grammar predict held-out operator sequences and collocations? Train 80% / test 20%. DONE: held-out scores.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.928730973+00:00",
+      "updated_at": "2026-10-02T22:17:46.928730973+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 71,
+      "title": "Consistency checker",
+      "description": "Verify the same symbol/term gets the same reading throughout; flag violations. DONE: checker + report over the termbase.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.915471029+00:00",
+      "updated_at": "2026-10-02T22:17:46.915471029+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 70,
+      "title": "Coverage accounting / residue ledger",
+      "description": "Does the analysis account for every token/operator, or ignore the awkward residue? Unexplained residue is the test's teeth. DONE: residue ledger + coverage metric.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 69,
+      "labels": [
+        "be-plan",
+        "eval",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.902463878+00:00",
+      "updated_at": "2026-10-02T22:17:46.902463878+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 69,
+      "title": "E9 — Evaluation and epistemology",
+      "description": "L9. No ground-truth translation exists; state what would count as evidence and audit the anti-patterns that would fool us.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "eval"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.889247064+00:00",
+      "updated_at": "2026-10-02T22:17:46.889247064+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 68,
+      "title": "Compression test for candidate readings",
+      "description": "A good gloss shortens the description of the book; score candidate readings by whether they make the corpus more predictable and compressible. DONE: scoring harness + ranked readings.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.876357153+00:00",
+      "updated_at": "2026-10-02T22:17:46.876357153+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 67,
+      "title": "Spectral reading artifact",
+      "description": "Present the silence-removed stream as a distinct under-text reading, explicitly not 'the real text'. DONE: publishable spectral reading + framing note.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.862740660+00:00",
+      "updated_at": "2026-10-02T22:17:46.862740660+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 66,
+      "title": "Narrative reconstruction (entity/event tracking)",
+      "description": "Track entities/events over the AST to recover who does what to whom (ADAM, ANTi-ADAM, Super Cherry 666, Sato Corp, the dog, 'self'); jacket synopsis is a sanity check, not a script. DONE: narrative skeleton + evidence links.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.849743247+00:00",
+      "updated_at": "2026-10-02T22:17:46.849743247+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 65,
+      "title": "Termbase and consistency enforcement",
+      "description": "One term = one gloss (except where discrepancy is the point); a termbase prevents drift across 224 pages. DONE: termbase + consistency checker input.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.836253532+00:00",
+      "updated_at": "2026-10-02T22:17:46.836253532+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 64,
+      "title": "Multi-agent translation committee with disagreement log",
+      "description": "Generator/critic/comparer loop; disagreement localizes genuinely ambiguous passages. DONE: committee harness + disagreement map.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.819863220+00:00",
+      "updated_at": "2026-10-02T22:17:46.819863220+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 63,
+      "title": "LLM glossing pipeline (multi-strategy)",
+      "description": "Prompt strategies: literal gloss preserving operators; register-normalized paraphrase; scene summary; plain-English translation; entity-consistent gloss. Feed the glossary and operator grammar as constraints. DONE: pipeline + sampled glosses.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.801879010+00:00",
+      "updated_at": "2026-10-02T22:17:46.801879010+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 62,
+      "title": "Interlinear edition generator",
+      "description": "Three-line aligned rendering: original clause | operator-normalized (silence removed) | plain-English gloss. DONE: generator + first full-book rendering.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 61,
+      "labels": [
+        "be-plan",
+        "gloss",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.784591866+00:00",
+      "updated_at": "2026-10-02T22:17:46.784591866+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 61,
+      "title": "E8 — Interpretation, gloss and interlinear edition",
+      "description": "L8. Only after the machinery above generate readings - rigorously, with every interpretive move visible and overridable.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "gloss"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.769501541+00:00",
+      "updated_at": "2026-10-02T22:17:46.769501541+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 60,
+      "title": "Genre/prior dossier",
+      "description": "Cyberpunk, Tetsuo: The Iron Man, Ballard, Aase Berg, Blake Butler, text-virus/codework poetics - expectations for the kind of meaning present. DONE: annotated dossier.",
+      "status": "open",
+      "priority": "low",
+      "parent_id": 55,
+      "labels": [
+        "be-plan",
+        "intertext",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.755634729+00:00",
+      "updated_at": "2026-10-02T22:17:46.755634729+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 59,
+      "title": "Seed entity roles from jacket synopsis, verify against text",
+      "description": "Use the canonical macro-plot (ADAM/ANTi-ADAM clash, Sato Corp, Cadaver City, Placenta World) to seed entity roles, then verify each against the corpus. DONE: role table with text evidence or refutation.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 55,
+      "labels": [
+        "be-plan",
+        "intertext",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.742553278+00:00",
+      "updated_at": "2026-10-02T22:17:46.742553278+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 58,
+      "title": "Obtain and align translations (interpretive oracle)",
+      "description": "A Russian translation exists (trans. A. Skobin) plus author interviews glossing the method. Obtain available parallel text, sentence-align, and treat it as an independent disambiguation signal - the closest thing to a Rosetta stone. DONE: alignment artifact or a documented negative result.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 55,
+      "labels": [
+        "be-plan",
+        "intertext",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.729621248+00:00",
+      "updated_at": "2026-10-02T22:17:46.729621248+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 57,
+      "title": "Intertextual n-gram matching vs Siratori corpus",
+      "description": "Match phrases against Siratori's other works (Headcode, Human_Worms, Smart-d, GENEDUB, Nonexistence) and cited influences; shared formulas separate idiolect from genre. DONE: overlap report.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 55,
+      "labels": [
+        "be-plan",
+        "intertext",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.716239235+00:00",
+      "updated_at": "2026-10-02T22:17:46.716239235+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 56,
+      "title": "Build reference corpora and keyness harness",
+      "description": "Assemble general English, cyberpunk (Gibson/Stephenson/Sterling), cut-up/Surrealist (Burroughs/Artaud/Breton), Finnegans Wake, and medical/CS/legal abstracts; wire the keyness harness. DONE: corpora + harness.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 55,
+      "labels": [
+        "be-plan",
+        "intertext",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.703368039+00:00",
+      "updated_at": "2026-10-02T22:17:46.703368039+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 55,
+      "title": "E7 — Cross-corpus, translation and intertext",
+      "description": "L7. External material is a prior, not the object. Use it to disambiguate, never to ventriloquize. Highest-value item: translations as an interpretive oracle.",
+      "status": "open",
+      "priority": "low",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "intertext"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.690366048+00:00",
+      "updated_at": "2026-10-02T22:17:46.690366048+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 54,
+      "title": "Self-similarity matrix (loop detection)",
+      "description": "Paragraph x paragraph cosine self-similarity; does the 'loop' show as a diagonal band or repeating blocks? DONE: matrix + structural reading.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.675788153+00:00",
+      "updated_at": "2026-10-02T22:17:46.675788153+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 53,
+      "title": "Burstiness and Heaps' law",
+      "description": "Vocabulary growth vs text length; burstiness of entity use. DONE: growth/burstiness report.",
+      "status": "open",
+      "priority": "low",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.658905027+00:00",
+      "updated_at": "2026-10-02T22:17:46.658905027+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 52,
+      "title": "Operator-word mutual information",
+      "description": "Which operators predict which lexical domains (:: before body terms? = before tech terms?); converts the operator grammar into statistics. DONE: MI matrix + findings.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.640861926+00:00",
+      "updated_at": "2026-10-02T22:17:46.640861926+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 51,
+      "title": "Periodicity and spectral analysis",
+      "description": "Map the symbol stream to numeric series (1 for delimiter else 0; inter-delimiter distances); run autocorrelation and FFT for latent periodicity - the measurable form of 'a devastating loop of language'. DONE: spectra + periodicity report.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.624924563+00:00",
+      "updated_at": "2026-10-02T22:17:46.624924563+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 50,
+      "title": "Quantified silence-removal experiment",
+      "description": "For each E1.4 variant measure delta in entropy, compressibility, and LM perplexity. The transform that most lowers perplexity is closest to the underlying 'vowel' system - a direct methodological replication of Begus on text. DONE: results table + verdict.",
+      "status": "open",
+      "priority": "critical",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.611123734+00:00",
+      "updated_at": "2026-10-02T22:17:46.611123734+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 49,
+      "title": "LM perplexity per page",
+      "description": "Score the book with GPT-2 / a modern LM; plot perplexity per page. DONE: perplexity curve + baseline comparison.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.597875171+00:00",
+      "updated_at": "2026-10-02T22:17:46.597875171+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 48,
+      "title": "Compression / MDL vs English baseline",
+      "description": "gzip/zstd compression ratio vs English prose; low compressibility = high alienness. DONE: compressibility comparison + method note.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.584714302+00:00",
+      "updated_at": "2026-10-02T22:17:46.584714302+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 47,
+      "title": "Multi-level entropy analysis",
+      "description": "Shannon entropy at char/token/operator level and conditional entropy H(next|prev) at several orders; compare to English (~1 bit/char, ~9-10 bits/word raw). DONE: entropy report.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 46,
+      "labels": [
+        "be-plan",
+        "research",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.571653280+00:00",
+      "updated_at": "2026-10-02T22:17:46.571653280+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 46,
+      "title": "E6 — Information-theoretic signal layer (Begus programme)",
+      "description": "L6. Treat the token/operator stream as an acoustic-like signal, directly transferring the sperm-whale methodology. This is the signature method of the program.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "signal"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.558643625+00:00",
+      "updated_at": "2026-10-02T22:17:46.558643625+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 45,
+      "title": "Analogy and metaphor mining",
+      "description": "Vector arithmetic on entity terms to surface the book's own equations (gene=TV : digital=vamp :: ? : ?). DONE: candidate equations, ranked and annotated.",
+      "status": "open",
+      "priority": "low",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.545319720+00:00",
+      "updated_at": "2026-10-02T22:17:46.545319720+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 44,
+      "title": "Affect and valence curve",
+      "description": "Lexicon + classifier scores for fear/ecstasy/paranoia/disgust; plot over the book (explicit markers like Fear=cell, ecstasy). DONE: affect curve + report.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.532419700+00:00",
+      "updated_at": "2026-10-02T22:17:46.532419700+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 43,
+      "title": "Contrastive semantic axes",
+      "description": "Find and interpret dimensions separating clusters (organic<->machine, self<->other, body<->information, sacred<->profane); test with antonym seed pairs. DONE: named axes + supporting contrasts.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.517012972+00:00",
+      "updated_at": "2026-10-02T22:17:46.517012972+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 42,
+      "title": "UMAP theme map of the book",
+      "description": "Project embeddings with UMAP/t-SNE colored by page to reveal narrative drift or loops. DONE: interactive/static map artifact.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.499799376+00:00",
+      "updated_at": "2026-10-02T22:17:46.499799376+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 41,
+      "title": "Topic modelling (LDA/NMF/BERTopic)",
+      "description": "Latent themes with top terms; compare against network communities from E3.6. DONE: topic model + coherence/interpretation report.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.482222259+00:00",
+      "updated_at": "2026-10-02T22:17:46.482222259+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 40,
+      "title": "Clustering to motifs and scenes",
+      "description": "k-means/HDBSCAN over clause embeddings to recover recurring motifs (dog+murder+gene; brain+Load+ecstasy). DONE: cluster catalogue with exemplar clauses.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.466951636+00:00",
+      "updated_at": "2026-10-02T22:17:46.466951636+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 39,
+      "title": "Clause/sentence embeddings",
+      "description": "Embed clauses/sentences with SBERT/E5; persist vectors keyed to page/clause. DONE: embedding artifact + loader.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 38,
+      "labels": [
+        "be-plan",
+        "research",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.453608595+00:00",
+      "updated_at": "2026-10-02T22:17:46.453608595+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 38,
+      "title": "E5 — Semantic themes, motifs and affect",
+      "description": "L5. Recurring scenes and motifs via embeddings, clustering, topics, axes, and affect.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "semantics"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.440728813+00:00",
+      "updated_at": "2026-10-02T22:17:46.440728813+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 37,
+      "title": "POS-tagging the silence-removed residue",
+      "description": "Tag the plain stream from E1.4; measure drift in noun/verb balance vs normal English. DONE: POS comparison report.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 31,
+      "labels": [
+        "be-plan",
+        "research",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.427817592+00:00",
+      "updated_at": "2026-10-02T22:17:46.427817592+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 36,
+      "title": "Formal grammar induction and complexity",
+      "description": "Ask whether the operator/token stream is regular, context-free, or needs context; estimate automaton state count via compression/entropy. DONE: a measurable 'language or noise' verdict.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 31,
+      "labels": [
+        "be-plan",
+        "research",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.414247967+00:00",
+      "updated_at": "2026-10-02T22:17:46.414247967+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 35,
+      "title": "n-gram LM and per-token surprisal",
+      "description": "Train an n-gram or neural LM on the book; compute per-token surprisal; high-surprisal zones are the deranged core. DONE: surprisal curve + hot/cold zones.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 31,
+      "labels": [
+        "be-plan",
+        "research",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.400756608+00:00",
+      "updated_at": "2026-10-02T22:17:46.400756608+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 34,
+      "title": "Frame and template mining",
+      "description": "Extract recurrent schemata ('I <verb> the <NP> of <NP>', 'the <N> that <V>', <<...>>'); their recurrence is the book's own loop grammar. DONE: frame catalogue + counts.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 31,
+      "labels": [
+        "be-plan",
+        "research",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.387987193+00:00",
+      "updated_at": "2026-10-02T22:17:46.387987193+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 33,
+      "title": "Clause segmentation via operators",
+      "description": "Split at ::, //, sentence-final /; treat each operator-delimited span as a clause; measure length/type distributions. DONE: clause inventory + distributions.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 31,
+      "labels": [
+        "be-plan",
+        "research",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.374001288+00:00",
+      "updated_at": "2026-10-02T22:17:46.374001288+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 32,
+      "title": "Parse-attempt and derangement curve per page",
+      "description": "Run spaCy/stanza; record the fraction of sentences that parse and their confidence. Percent-parseable-per-page quantifies the observed drift toward coherence. DONE: derangement curve + report.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 31,
+      "labels": [
+        "be-plan",
+        "research",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.357514054+00:00",
+      "updated_at": "2026-10-02T22:17:46.357514054+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 31,
+      "title": "E4 — Syntax and structure without a parser",
+      "description": "L4. A constituency/dependency parser will mostly fail; that failure is data. Recover structure from operators, repeated frames, and surprisal.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "syntax"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.339479099+00:00",
+      "updated_at": "2026-10-02T22:17:46.339479099+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 30,
+      "title": "Entity and proper-noun induction (dramatis personae)",
+      "description": "Capitalization + recurrence + collocation to build the personae: ADAM, ANTi-ADAM, Super Cherry 666, Sato Corporation, ToK/ToKAGE, NDRO, OMOTYA, etc. DONE: entity glossary with evidence and roles.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.321975500+00:00",
+      "updated_at": "2026-10-02T22:17:46.321975500+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 29,
+      "title": "Co-occurrence network and community detection",
+      "description": "Nodes = terms, edges = PMI; Louvain community detection should recover the semantic domains (body/machine/violence/sex/genetics/corporate); centrality identifies load-bearing concepts. DONE: graph + community report + centrality.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.306642680+00:00",
+      "updated_at": "2026-10-02T22:17:46.306642680+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 28,
+      "title": "Static embeddings and analogies",
+      "description": "Train word2vec/GloVe/fastText on this text alone and on a merged English corpus; fastText handles OOV coinages via subwords. Produce nearest neighbours and analogies (X:Y :: Z:?). DONE: embedding artifacts + neighbours/analogies.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.292773022+00:00",
+      "updated_at": "2026-10-02T22:17:46.292773022+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 27,
+      "title": "Collocation and association (PMI/logDice)",
+      "description": "Bigram/trigram association, especially operator-word and entity-verb pairs: what does ToKAGE do, what is done to it. DONE: ranked collocation tables.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.279488231+00:00",
+      "updated_at": "2026-10-02T22:17:46.279488231+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 26,
+      "title": "KWIC concordancer for entities and terms",
+      "description": "For every entity and suspicious term print every occurrence in +/-5-token context; this is the primary route to a term's stable sense. DONE: concordance artifact + per-term summaries.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.266032760+00:00",
+      "updated_at": "2026-10-02T22:17:46.266032760+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 25,
+      "title": "Keyness against reference corpora",
+      "description": "Log-likelihood / TF-IDF keyness vs general English and the technical register; identify words diagnostic of this text. DONE: keyness tables.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.252514270+00:00",
+      "updated_at": "2026-10-02T22:17:46.252514270+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 24,
+      "title": "Frequency, Zipf and type/token analysis",
+      "description": "Type/token ratio, hapax ratio, Zipf slope; compare to English prose to distinguish heavy coinage from noise. DONE: statistics report.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 23,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.239493624+00:00",
+      "updated_at": "2026-10-02T22:17:46.239493624+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 23,
+      "title": "E3 — Distributional semantics & semantic network",
+      "description": "L3. Meaning from usage, not definition: frequency, keyness, concordance, collocation, embeddings, and a co-occurrence network over the whole book.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "distribution",
+        "epic"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.226413346+00:00",
+      "updated_at": "2026-10-02T22:17:46.226413346+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 22,
+      "title": "Case and emphasis inventory",
+      "description": "Extract ALL-CAPS tokens and decide whether they are headers, screams, or labels; report against section headers. DONE: inventory + classification.",
+      "status": "open",
+      "priority": "low",
+      "parent_id": 16,
+      "labels": [
+        "be-plan",
+        "lexicon",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.211684358+00:00",
+      "updated_at": "2026-10-02T22:17:46.211684358+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 21,
+      "title": "Numeric and symbol channel catalogue",
+      "description": "Catalogue in-text numbers (666, XX, zero, v1.0) and treat them as a separate channel that may encode counts, versions, or pseudo-code. DONE: numeric/symbol inventory + interpretation hypotheses.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 16,
+      "labels": [
+        "be-plan",
+        "lexicon",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.194600496+00:00",
+      "updated_at": "2026-10-02T22:17:46.194600496+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 20,
+      "title": "Validated morphological segmentation",
+      "description": "Apply Morhpessor/UniMorph/ByT5 segmentation but validate against the gazetteer so it does not segment away real coinages. DONE: segmentation with precision spot-check.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 16,
+      "labels": [
+        "be-plan",
+        "lexicon",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.176006954+00:00",
+      "updated_at": "2026-10-02T22:17:46.176006954+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 19,
+      "title": "Neologism detection -> neologisms.tsv",
+      "description": "OOV against an English wordlist + Zipf; separate true coinages, compounds of English parts, and OCR errors; record first attestation and counts. DONE: neologisms.tsv + method notes.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 16,
+      "labels": [
+        "be-plan",
+        "lexicon",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.159795366+00:00",
+      "updated_at": "2026-10-02T22:17:46.159795366+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 18,
+      "title": "Compound/portmanteau decomposition and affix lexicon",
+      "description": "Handle hyphen (=), concat (++), identity (=), slash (/). Detect productive classifier/head morphemes: -oid, -machine, -vamp, -gram, -cell, -embryo, -drone, -junkie, -mania. DONE: decomposition rules + productive-affix mini-lexicon.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 16,
+      "labels": [
+        "be-plan",
+        "lexicon",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.145458032+00:00",
+      "updated_at": "2026-10-02T22:17:46.145458032+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 17,
+      "title": "Operator-aware tokenizer",
+      "description": "Tokenize so gene=TV, soul/gram, suck=blood remain analyzable units plus their parts. Standard tokenizers destroy the meaningful seams. DONE: tokenizer + spec + tests.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 16,
+      "labels": [
+        "be-plan",
+        "lexicon",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.132330335+00:00",
+      "updated_at": "2026-10-02T22:17:46.132330335+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 16,
+      "title": "E2 — Lexicon & morphology",
+      "description": "L2. Words, compounds, inventions. Because English lexis survives, this level builds the vocabulary the rest of the program depends on.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "lexicon"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.119332291+00:00",
+      "updated_at": "2026-10-02T22:17:46.119332291+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 15,
+      "title": "Rosetta mapping against real notations",
+      "description": "Place the operator set beside C/Perl/Lisp/S-expressions, HTML/Markdown, regex, and molecular/genetic notation; score which real syntax the book's code most resembles. DONE: scored comparison = a testable 'where the book is coming from' claim.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 9,
+      "labels": [
+        "be-plan",
+        "operator",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.106549130+00:00",
+      "updated_at": "2026-10-02T22:17:46.106549130+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 14,
+      "title": "Operator grammar block parser (AST)",
+      "description": "Implement a parser for the operator grammar: << ... >> as quoted/blocked speech, :: fields as records, // clauses as lines; emit an AST/tree over the whole book, not flat text. DONE: parser + AST artifact + spot-check evaluation.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 9,
+      "labels": [
+        "be-plan",
+        "operator",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.093572597+00:00",
+      "updated_at": "2026-10-02T22:17:46.093572597+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 13,
+      "title": "Silence-removal transform variants",
+      "description": "Begus transform: produce variants that delete all operators, delete only ::,//, map operators to space, and map operators to period. Persist each residue stream. DONE: variant files + rationale; feeds E6.4 and E8.6.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 9,
+      "labels": [
+        "be-plan",
+        "operator",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.080512347+00:00",
+      "updated_at": "2026-10-02T22:17:46.080512347+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 12,
+      "title": "Operator function classification",
+      "description": "Test the working hypothesis for each operator role: :: separator/field, // utterance/comment, ++ concatenate/increment, = naming/identity (gene=TV), << >> stream/block delimiters, / alternation/possessive, ` escape, - compound linker. Test each against distribution; refine or reject. DONE: classification spec with evidence per operator.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 9,
+      "labels": [
+        "be-plan",
+        "operator",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.067204582+00:00",
+      "updated_at": "2026-10-02T22:17:46.067204582+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 11,
+      "title": "Operator n-gram transition matrix and Markov model",
+      "description": "Model operator sequences (1st/2nd order); test whether transitions are idiomatic (a real syntax) or random; report perplexity of the operator stream under the model. DONE: transition matrix + randomness verdict.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 9,
+      "labels": [
+        "be-plan",
+        "operator",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.051685463+00:00",
+      "updated_at": "2026-10-02T22:17:46.051685463+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 10,
+      "title": "Operator inventory & frequency (incl. multi-operator runs)",
+      "description": "Count each operator and multi-operator run (//++, ::<<, >::, ::>>++ all occur); emit operators.tsv with counts and per-page distribution. DONE: operators.tsv.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 9,
+      "labels": [
+        "be-plan",
+        "operator",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.034043504+00:00",
+      "updated_at": "2026-10-02T22:17:46.034043504+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 9,
+      "title": "E1 — Operator grammar & the symbolic machine",
+      "description": "L1. The operators are the book's opcodes. If the text is 'a fictional code', its grammar is the highest-leverage symbolic-meaning target. Deliverables: operator grammar spec, block parser, silence-removal variants, Rosetta mapping.",
+      "status": "open",
+      "priority": "critical",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "operator"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.016044858+00:00",
+      "updated_at": "2026-10-02T22:17:46.016044858+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 8,
+      "title": "Build a page/folio map for citation",
+      "description": "Align markdown spans to PDF page indices and printed folio numbers so every downstream claim is citable to a page. DONE: folio map + coverage validation.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 2,
+      "labels": [
+        "be-plan",
+        "ocr",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:46.000642768+00:00",
+      "updated_at": "2026-10-02T22:17:46.000642768+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 7,
+      "title": "Recover layout, paragraphs and section headers",
+      "description": "Use marker block structure to recover paragraph/section breaks; extract ALL section headers (only 'abolition' is known at present). DONE: sections.tsv + layout-corrected markdown.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 2,
+      "labels": [
+        "be-plan",
+        "ocr",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.987074675+00:00",
+      "updated_at": "2026-10-02T22:17:45.987074675+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 6,
+      "title": "Build gazetteer-protected lexical correction",
+      "description": "Full observed token list; correct only tokens within edit distance 1-2 of a known English word or a confirmed entity (boyroid->boy-roid); never correct true coinages - protect them with an explicit gazetteer. DONE: corrections log + vetted corpus + gazetteer.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 2,
+      "labels": [
+        "be-plan",
+        "ocr",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.974010608+00:00",
+      "updated_at": "2026-10-02T22:17:45.974010608+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 5,
+      "title": "Inventory glyphs and freeze unicode normalization",
+      "description": "Enumerate every codepoint across the corpus; decide canonical forms; normalize ligatures and quote variants; freeze charset.tsv and a reusable normalizer with a test. DONE: charset.tsv + normalizer + passing test.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 2,
+      "labels": [
+        "be-plan",
+        "ocr",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.960824742+00:00",
+      "updated_at": "2026-10-02T22:17:45.960824742+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 4,
+      "title": "Ensemble OCR (Tesseract/PaddleOCR/docTR) with glyph voting",
+      "description": "OCR the same pages with >=2 other engines, align outputs, take a character-level vote, and produce a disagreement atlas localizing ambiguous glyphs (:: vs :, << , backtick vs apostrophe). DONE: consensus transcript + disagreement atlas.",
+      "status": "open",
+      "priority": "medium",
+      "parent_id": 2,
+      "labels": [
+        "be-plan",
+        "ocr",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.947365113+00:00",
+      "updated_at": "2026-10-02T22:17:45.947365113+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 3,
+      "title": "Map OCR confidence for the marker corpus",
+      "description": "Re-run marker with --output_format json to obtain per-line/word confidences; extract scores, flag low-confidence tokens, and write analysis/ocr_confidence/. DONE: confidence table + flagged-token list + short report.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": 2,
+      "labels": [
+        "be-plan",
+        "ocr",
+        "research"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.933491558+00:00",
+      "updated_at": "2026-10-02T22:17:45.933491558+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 2,
+      "title": "E0 — Corpus ingestion & OCR stabilization",
+      "description": "L0. Stabilize the signal before any analysis. Source is a 225-page scanned PDF; marker OCR already preserves operators but drifts (It->lt, boyroid->boy-roid, spacing around >>). Deliver a vetted, citable token stream.",
+      "status": "open",
+      "priority": "critical",
+      "parent_id": 1,
+      "labels": [
+        "be-plan",
+        "epic",
+        "ocr"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.920056405+00:00",
+      "updated_at": "2026-10-02T22:17:45.920056405+00:00",
+      "closed_at": null
+    },
+    {
+      "id": 1,
+      "title": "Decode Blood Electric — end-to-end reading program",
+      "description": "Umbrella epic for turning Kenji Siratori's *Blood Electric* (2002) into an evidence-linked, understandable translation into English. Thesis: the book is English lexis under a symbolic transform (operator punctuation + neologisms); measure the transform, strip it (Begus-style silence removal), re-embed the residue in meaning-space.\n\nAuthoritative method doc: docs/meaning-extraction-methods.md (levels L0-L9). Orientation: README.md. Corpus: docs/markdown/blood-electric/blood-electric.md.\n\nDONE = every token/operator accounted for; operator grammar specified and predictive; motif/theme map converges across independent methods; an interlinear edition + glossed termbase + narrative skeleton exist; evaluation criteria (L9) are met and anti-patterns audited.",
+      "status": "open",
+      "priority": "high",
+      "parent_id": null,
+      "labels": [
+        "be-plan",
+        "epic",
+        "program"
+      ],
+      "comments": [],
+      "created_at": "2026-10-02T22:17:45.903082419+00:00",
+      "updated_at": "2026-10-02T22:17:45.903082419+00:00",
+      "closed_at": null
+    }
+  ]
+}
