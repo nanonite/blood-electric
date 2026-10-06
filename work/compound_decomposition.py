@@ -1709,7 +1709,7 @@ def write_spec(S, out):
     ap("- `unit_screen.tsv` is the **type-level** view #19 should screen: unit "
       "surface, occurrence count, class, rule, resolved decomposition, markup "
       "flag. Screening word parts instead would miss all "
-      f"{L['open']:,} open-juncture units.")
+      f"{L['open_any']:,} open-juncture units.")
     ap("- `closed_juncture.tsv` gives the resolved coinage inventory with "
       "first counts; `opaque_coinage` rows are the ones #19 should treat as "
       "true coinages rather than compounds of English.")
@@ -1785,7 +1785,7 @@ def oid_family(recs, lex):
     pages = collections.defaultdict(set)
     first = {}
     roles = collections.defaultdict(collections.Counter)
-    fused = collections.Counter()
+    fused = collections.defaultdict(collections.Counter)
     for r in recs:
         if r["markup"]:
             continue
@@ -2145,7 +2145,7 @@ def build(src=SRC, out=OUT, verbose=True):
                    if not k.startswith("_")}, f, indent=1, default=str)
     if verbose:
         print(f"#18 -> {out}")
-        print(f"  units {n_units:,}  open {links['open']:,}  "
+        print(f"  units {n_units:,}  open {links['open_any']:,}  "
               f"closed {links['closed']:,}  fused {links['fused']:,}")
         print(f"  morphemes {S['n_morph_total']:,} over "
               f"{S['n_morph_types']:,} types")

@@ -698,7 +698,7 @@ class ArtifactTest(unittest.TestCase):
         self.assertIn("`boy-roid`", spec)
         self.assertIn("Downstream contract", spec)
         # every headline number in §1 must be the build's, not a stale literal
-        self.assertIn(f"{self.S['links']['open']:,} open-juncture units", spec)
+        self.assertIn(f"{self.S['links']['open_any']:,} open-juncture units", spec)
         self.assertIn(f"{self.S['diag_counts']['markup_unit_strict']}", spec)
         # no unformatted f-string leftovers outside the ebnf grammar block
         body = re.sub(r"```ebnf.*?```", "", spec, flags=re.S)
