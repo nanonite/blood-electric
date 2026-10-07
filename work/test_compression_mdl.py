@@ -101,6 +101,35 @@ class TestCorpus(unittest.TestCase):
         self.assertNotIn("<!--", text)
         self.assertNotIn("#", text[:50])
 
+    def test_english_char_streams_casefolded(self):
+        # Regression for the missing .lower() on the English char streams: the
+        # pooled baseline must be case-folded exactly like the book. Otherwise
+        # uppercase inflates char_raw and uppercase letters are *deleted* from
+        # char_letters instead of folded, so the letters view is not the [a-z]
+        # projection of the matched prefix.
+        book = cm.book_streams()
+        self.assertFalse(any(c.isupper() for c in book["char_raw"][0]))
+        _refs, en = cm.english_streams(book["char_raw"][2], book["token_unit"][2])
+        raw = en["char_raw"][0]
+        self.assertFalse(any(c.isupper() for c in raw))
+        # letters is exactly the [a-z] projection of the same case-folded prefix
+        self.assertEqual(en["char_letters"][2],
+                         sum(1 for c in raw if c in cm.LETTERS))
+        self.assertEqual(book["char_letters"][2],
+                         sum(1 for c in book["char_raw"][0] if c in cm.LETTERS))
+
+    def test_per_text_english_casefolded(self):
+        _refs, _en = cm.english_streams(40000, 4000)
+        per = cm.per_text_english(_refs, 40000, 4000)
+        self.assertEqual(set(per), {r[0] for r in _refs})
+        for name, streams in per.items():
+            raw = streams["char_raw"][0]
+            self.assertFalse(any(c.isupper() for c in raw), name)
+            self.assertEqual(streams["char_letters"][2],
+                             sum(1 for c in raw if c in cm.LETTERS), name)
+        self.assertTrue(any(any(c.isalpha() for c in s["char_raw"][0])
+                            for s in per.values()))
+
     def test_zstd_backend_reported(self):
         self.assertIn(diag("zstd_backend"), ("package", "cli", "none"))
 

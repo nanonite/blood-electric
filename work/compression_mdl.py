@@ -11,8 +11,9 @@ high alienness"; this module tests it directly
 Method (the "method note" the issue asks for):
 
 * **Matched N, matched alphabet.**  The book and the pooled eight pinned #24
-  English references are truncated to the same symbol count and normalised the
-  same way, so the ratio is not a length or preprocessing artefact.
+  English references are truncated to the same raw symbol count and case-folded
+  identically, so the ratio is not a length or preprocessing artefact.  The
+  ``letters`` view is the ``[a-z]`` projection of that same case-folded prefix.
 * **Several compressors, several strengths.**  gzip/zlib (LZ77+ Huffman), bz2
   (BWT), lzma/xz (LZMA2) and zstd at levels 3 and 19.  A finding that survives
   six compressors is not a quirk of one dictionary/entropy coder.
@@ -167,7 +168,11 @@ def english_streams(n_char, n_token):
                                log=lambda *a: None)
     bodies = [fz.strip_gutenberg(p.read_text(encoding="utf-8", errors="replace"))
               for _n, _a, p in refs]
-    raw = "".join(bodies)[:n_char]
+    # Case-fold *before* the letters projection, exactly as the book does: a
+    # missing ``.lower()`` would keep uppercase in ``char_raw`` (raising its
+    # entropy) and would *delete* uppercase letters from ``char_letters``
+    # instead of folding them, breaking the matched-prefix construction.
+    raw = "".join(bodies)[:n_char].lower()
     letters = "".join(c for c in raw if c in LETTERS)
     tokens = []
     for b in bodies:
@@ -185,7 +190,7 @@ def per_text_english(refs, n_char, n_token):
     out = {}
     for name, _author, path in refs:
         body = fz.strip_gutenberg(path.read_text(encoding="utf-8", errors="replace"))
-        raw = body[:n_char]
+        raw = body[:n_char].lower()  # case-fold identically to the book streams
         letters = "".join(c for c in raw if c in LETTERS)
         tokens = fz.tokenize_english(body)[:n_token]
         out[name] = {
@@ -507,10 +512,12 @@ def build_report(ctx):
       "gzip/zlib (LZ77 + Huffman), bz2 (BWT), "
       "lzma/xz (LZMA2), zstd (levels 3 and 19) - so no single dictionary or "
       "entropy coder drives the result. The book and the pooled English "
-      "references are truncated to the **same symbol count** and normalised the "
-      "same way (page bodies, case-folded, layout comments removed). Two "
-      "alphabets are reported: `raw` (whitespace and the operator punctuation "
-      "kept) and `letters` (`[a-z]` only, the usual setting for bits/char). "
+      "references are truncated to the **same raw character count** and "
+      "case-folded identically (page bodies, layout comments removed); the "
+      "`letters` view is the `[a-z]` projection of that same case-folded "
+      "prefix. Two alphabets are reported: `raw` (whitespace and the operator "
+      "punctuation kept) and `letters` (`[a-z]` only, the usual setting for "
+      "bits/char). "
       "`bits_per_symbol = 8 * compressed_bytes / n_symbols` is the "
       "description-length number; `ratio = compressed_bytes / n_bytes` is also "
       "shown. Finally, a length-robust **MDL split** halves each stream and "
