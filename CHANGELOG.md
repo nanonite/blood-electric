@@ -6,6 +6,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Frame and template mining (#34)
 - Quantified silence-removal experiment (#50)
 - LM perplexity per page (#49)
 - LM perplexity per page with GPT-2, matched English baseline (#49)
