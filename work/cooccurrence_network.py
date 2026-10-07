@@ -225,7 +225,9 @@ def label_communities(comms, freq):
         for m in members:
             for dom in seed_to_domains.get(m, ()):
                 hits[dom] += 1
-        ranked = hits.most_common()
+        # Deterministic ranking: ties broken by domain name, not by
+        # Counter/set insertion order (which is hash-randomized per process).
+        ranked = sorted(hits.items(), key=lambda kv: (-kv[1], kv[0]))
         if not ranked or ranked[0][1] < 2:
             domain = "mixed"
         elif len(ranked) > 1 and ranked[1][1] >= ranked[0][1] - 1:
