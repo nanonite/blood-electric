@@ -1137,6 +1137,15 @@ def build_report(ctx):
       "is removed. The `harmonic ratio` is the power at `period/2` relative to "
       "the band median - a true pulse train would show a harmonic peak.")
     a("")
+    a("The **autocorrelation** tells the same story. For `tok_op`, `r(1)` = "
+      "0.018 exceeds the global-shuffle 95th percentile (0.006) but lies inside "
+      "the block-shuffle envelope (p95 0.018) - short-range clustering, not a "
+      "cycle. The same holds for the weak `r(11)` bump (0.041 vs block p95 "
+      "0.041). At the page scale there is nothing: `r(401)` = 0.002 and "
+      "`r(200)` = 0.005, inside the noise band, so the book has no page-level "
+      "period. The full curve is in `autocorrelation.tsv` (with the shuffle "
+      "envelopes) and `periodicity_autocorr.png`.")
+    a("")
 
     a("## 5. Inter-delimiter distances (renewal analysis)")
     a("")
