@@ -6,6 +6,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Clause segmentation via operators (#33)
 - Entity and proper-noun induction (dramatis personae) (#30)
 - Co-occurrence network and community detection (#29)
 - Compound/portmanteau decomposition and affix lexicon (#18)
