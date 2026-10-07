@@ -6,6 +6,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Compression / MDL vs English baseline (gzip/zstd/bz2/lzma) (#48)
 - Multi-level entropy analysis: char / token / operator + conditional orders 1-3 (#47)
 - n-gram LM and per-token surprisal (#35)
 - Clause segmentation via operators (#33)
