@@ -6,6 +6,8 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Clause/sentence embeddings: SBERT clause vectors + loader (#39)
+- Frame and template mining (#34)
 - Frame and template mining (#34)
 - Quantified silence-removal experiment (#50)
 - LM perplexity per page (#49)
