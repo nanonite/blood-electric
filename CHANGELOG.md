@@ -6,6 +6,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Topic modelling (LDA / NMF / BERTopic-style) + #29 community comparison (#41)
 - Clustering to motifs and scenes (#40)
 - Clause/sentence embeddings (#39)
 - Clause/sentence embeddings: SBERT clause vectors + loader (#39)
