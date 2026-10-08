@@ -6,6 +6,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Periodicity and spectral analysis (#51)
 - Topic modelling (LDA/NMF/BERTopic) (#41)
 - Topic modelling (LDA / NMF / BERTopic-style) + #29 community comparison (#41)
 - Clustering to motifs and scenes (#40)
