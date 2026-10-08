@@ -58,6 +58,11 @@ work/
   test_case_emphasis.py                # 30-test regression suite (#22)
   frequency_zipf.py                    # type/token, hapax, Zipf vs English prose (#24)
   test_frequency_zipf.py               # regression suite (#24)
+  reference_corpora.py                 # reference corpora for keyness: general English, cyberpunk,
+                                       #   cut-up/Surrealist, Finnegans Wake, medical/CS/legal (#56)
+  test_reference_corpora.py            # 26-test regression suite (#56)
+  keyness.py                           # keyness vs each reference corpus: signed G^2 + BH q + log-ratio (#56)
+  test_keyness.py                      # 43-test regression suite (#56)
   rosetta_mapping.py                   # Rosetta scorecard vs real notations (#15)
   test_rosetta_mapping.py              # regression suite (#15)
   ensemble_ocr.py                      # multi-engine OCR: consensus + glyph-vote atlas (#4)
@@ -97,6 +102,7 @@ work/
 - [ ] Embeddings / topics / motif map (clusters #40 ✓, topics #41 ✓; UMAP map #42, axes #43, affect #44, analogies #45 open).
 - [x] Chainlink #50 — quantified silence-removal experiment (the signature Beguš test): `analysis/silence_experiment/` (`silence_experiment_report.md` — the deliverable, `deltas.tsv` — the master variant × 3-delta table, `entropy_by_variant.tsv`, `compression_by_variant.tsv`, `perplexity_by_variant.tsv`, `perplexity_per_page.tsv`, `paired_deltas.tsv`, `reconciliation.tsv`, `diagnostics.tsv`, `summary.json`) + `work/silence_experiment.py` + regression test `work/test_silence_experiment.py` (19 tests). Each frozen #13 variant (v0 baseline .. v6) is scored by three instruments and the **delta vs v0** reported: token + char entropy, six #48 compressors, and **GPT-2 streaming perplexity** (the #49 instrument, one pass per variant → pooled book ppl + per-page paired sign test). Token entropy reconciles with #13 exactly and compression with #48 exactly; v0 ppl 106.2 vs #49's 104.2 (near-identical scope). **Verdict — `v4_operators_to_period` most lowers perplexity (84.1 vs 106.2, −22.2; 214/223 pages improved, sign-test p≈0), so it is closest to the underlying "vowel" system.** The clean controlled contrast is v3 (map-to-space, neutral: 106.7, p=0.59) vs v4 (map-to-period, big win) — same operator positions, different replacement character — so the active ingredient is **making the implicit punctuation explicit**, not operator removal per se (#12 showed the operators *are* the book's punctuation: 22 periods in 224 pages). **Negative result:** the Beguš-faithful strict deletions v1/v2 *raise* perplexity (128.4 / 124.9) because fusing neighbours into portmanteau non-words (`soulgram`) destroys readable structure faster than removing separators creates it. The v5/v6 diagnostic shows `::`->period (101.0) edging `//`->period (102.2) — a mild tension with #12's `//`-is-the-boundary claim, disclosed with the density confound (`::` 3,083 vs `//` 2,149).
 - [x] Chainlink #51 — periodicity / spectral analysis (L6.5): `analysis/periodicity/` (`periodicity_report.md` — the deliverable, `series_specs.tsv`, `autocorrelation.tsv` — book ACF + shuffle envelopes, `spectrum_peaks.tsv`, `spectrum.tsv`, `periodicity_tests.tsv`, `distance_histogram.tsv`, `fano.tsv`, `english_baseline.tsv`, `reconciliation.tsv`, `diagnostics.tsv`, `summary.json`, `periodicity_spectrum.png`, `periodicity_autocorr.png`) + `work/periodicity.py` + regression test `work/test_periodicity.py` (37 tests). The #17 token stream is mapped to a **delimiter indicator** (1 at an operator token; 90,220 tokens, 11,000 operators) and its **inter-delimiter distances**, plus char-level and #33 clause-length series; each is autocorrelated and Hann-windowed-FFT'd and tested against **global / block / detrended shuffle** nulls (200 each, seed 42). **Verdict — a negative result for the jacket-copy "loop": there is no latent fixed periodicity.** The operator indicator is close to white (spectral flatness 0.532 vs the white-noise anchor `exp(-γ)=0.561`); its strongest periodogram peak is at the *longest* period (4,511 tokens) and is an **OCR/HTML artifact** — 732 operator tokens lie inside #27 markup spans (486 on page 92) and screening them gives flatness 0.555 with **no significant peak** (p_global 0.33, p_block 0.70), as does dropping the three markup-heavy pages (flatness 0.567, p_block 0.72). The inter-operator distances are close to geometric but over-dispersed (mean 8.18, CV 1.056, observed/geometric variance 1.271, lag-1 correlation 0.046) — memoryless plus operator runs and page drift, not a cycle; English punctuation is *more regular* than Poisson (CV 0.823) and the #33 clause lengths show no periodicity (p_block 0.71). Consistent with #11's "shallow local run syntax" and #47's context-free operator channel: the "devastating loop" lives in lexical repetition (#24/#39), not in a metrical cycle of the symbol stream.
+- [x] Chainlink #56 — reference corpora + keyness harness (feeds #25): `analysis/reference_corpora/` (7 registers, `manifest.tsv` with source/licence/SHA-256/tokens per file) + `analysis/keyness/` (`keyness_report.md` — the deliverable, `keyness_<corpus>.tsv` — the 7 full tables, `summary.json`) + `work/reference_corpora.py` + `work/keyness.py` + regression tests `work/test_reference_corpora.py` (26 tests) and `work/test_keyness.py` (43 tests). Book side is the #17 *word-part* layer (79,770 kept of 80,363 parts, markup-screened with #19's ledger + #27's tag-run detector) — the only layer comparable to ordinary English words. Statistic: signed log-likelihood G² (Dunning 1993; Rayson & Garside 2000) with its chi-square p, a Benjamini–Hochberg **q** and a 0.5-smoothed log-ratio, gated at **q < 0.05** (tens of thousands of tested types per corpus make an uncorrected p-gate a false-positive factory). **Verdict:** 32 words are in the top 50 against *every* large reference (`cadaver`, `fecundates`, `flesh`, `organ`, `embryo`, `roid`, `gram`, `adam`, `doll`, `drone`, `vital`, plus the #24 function-word loop `of`/`the`/`that`), so they are findings about the book and not about a reference; 13 of the 944 general-English keys survive no technical register and are reported as residue of the historical-prose reference; the three copyright-cleared excerpt corpora (cyberpunk 105, cut-up 56, Finnegans Wake 49 tokens) are written but flagged as non-inferential and excluded from every stability claim.
 - [x] Silence-removal (Beguš) transform variants (#13) — residue streams persisted; the quantified perplexity version is done (#50).
 - [ ] Interlinear gloss + termbase + narrative skeleton.
 
@@ -199,6 +205,61 @@ The eight English baselines are downloaded once into
 `analysis/frequency/reference_cache/` and verified against pinned SHA-256
 hashes (`reference_manifest.tsv`). Use `--no-download` to require the cache and
 `--no-reference` to run the book-only path.
+
+## Reproduce the reference corpora and keyness (#56)
+
+```bash
+conda activate marker
+python work/reference_corpora.py                        # writes analysis/reference_corpora/
+python work/keyness.py                                  # writes analysis/keyness/
+python work/test_reference_corpora.py
+python work/test_keyness.py
+```
+
+The corpora are seven reference registers, each with a provenance row in
+`analysis/reference_corpora/manifest.tsv` (source, licence, SHA-256, token
+count — no wall-clock field, so the build is byte-for-byte reproducible given
+the same downloads):
+
+| corpus | contents | tokens |
+|---|---|---:|
+| `general_english` | the eight pinned #24 public-domain baselines + 7 more novels (Austen to Kafka) | 1.61 M |
+| `medical` | 1,000 PubMed abstracts (`disease[Title]`, live E-utilities query) | 380 k |
+| `legal` | Federalist Papers, Declaration of Independence, Magna Carta, *The Law*, *The Social Contract* | 350 k |
+| `cs` | 500 arXiv abstracts (cs.AI / cs.LG / cs.CL) | 103 k |
+| `cyberpunk` | Gibson / Stephenson / Sterling — **fair-use excerpts** | 105 |
+| `cutup_surrealist` | Burroughs / Artaud / Breton — fair-use excerpts | 56 |
+| `finnegans_wake` | Joyce — fair-use excerpts (*Finnegans Wake* is in US copyright to 2034) | 49 |
+
+The three excerpt corpora are short **by necessity**: those authors are in
+copyright, so only attributed quotations are used. They are far too small to
+carry a keyness test, and the harness says so rather than hiding it — every
+table is written, the report carries a corpus-size caveat, and the
+cross-corpus stability test is computed over the four large corpora only.
+
+`--no-download` rebuilds from cache (the live PubMed / arXiv queries are
+skipped and reported, never silently dropped); every write goes through a token
+gate, so a 404 page or an empty efetch body raises instead of replacing a good
+corpus.
+
+**Statistics.** Book side = the #17 *word-part* layer, markup-screened with
+#19's ledger + #27's tag-run detector (the unit layer fuses compounds and the
+token layer adds operators, so neither is comparable to ordinary English
+words). Reference side = the #24 English word regex. Per type in the union:
+signed log-likelihood G² (Dunning 1993; Rayson & Garside 2000), chi-square p,
+a **Benjamini–Hochberg q** and a 0.5-smoothed log-ratio. The gate is
+**q < 0.05**, not p < 0.05 — the union runs to tens of thousands of types, and
+uncorrected p admits hundreds of false positives by construction. `p` is still
+written per word so the correction is visible.
+
+**Verdict.** 32 words are in the top 50 against *every* large reference —
+the book's own lexicon (`cadaver`, `fecundates`, `flesh`, `organ`, `embryo`,
+`roid`, `gram`) and its designator channel (`adam`, `doll`, `drone`, `vital`),
+plus the function-word loop `of`/`the`/`that` that #24 measured. 13 of the 944
+general-English keys survive no technical register and are reported as
+reference residue: they are artifacts of comparing against 19th-century prose.
+Reproduce (`python work/keyness.py`) and read
+`analysis/keyness/keyness_report.md` for the per-corpus key / anti-key tables.
 
 ## Reproduce the multi-level entropy analysis (#47)
 
