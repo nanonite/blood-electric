@@ -3,6 +3,20 @@
 All notable changes in this workspace. The project decodes Kenji Siratori's *Blood Electric*
 (2002) into an evidence-linked English reading. Chainlink issue numbers are given as `#N`.
 
+## [Unreleased]
+
+### Added
+- Within-text language viability assessment, `analysis/language_viability/` (#56, revised scope) —
+  six pre-registered held-out checks plus a negative control, scored against within-text nulls
+  (within-page / within-run / within-clause / within-unit shuffle and a vocabulary bijection) with
+  add-one empirical p-values. Verdict **VIABLE (BOUNDED)**, 6 of 6, with an explicit bound: the
+  order sweep shows predictability stops at the bigram, so the recoverable language is local
+  (triangulating #11, #47 and #51). Intrinsic evidence only — no reference corpus consulted or
+  acquired; the earlier keyness output is retained as history and #78–#80 stay parked.
+- Interlinear gloss + termbase (`termbase_sample.tsv`, `gloss_passages.md`, `gloss_tokens.tsv`) —
+  49 terms with computed evidence and a confidence level, and three page-cited passages glossed
+  token by token with the #13 v3/v4 operator-normalized renderings.
+
 ## [0.1.0] — 2026-10-06
 
 ### Changed
