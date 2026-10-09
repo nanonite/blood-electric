@@ -241,6 +241,50 @@ class TestConvergenceMatrix(unittest.TestCase):
                 self.assertLessEqual(int(row["n_in_group"]),
                                      int(row["n_clauses"]))
 
+    def test_verdict_counts_reconcile_with_the_row_split(self):
+        counts = _A["summary"]["verdict_counts"]
+        for kind in ("motif", "domain", "all"):
+            self.assertEqual(sum(counts[kind].values()),
+                             len([r for r in _A["matrix"]
+                                  if kind == "all" or r["kind"] == kind]))
+        for verdict in tri.VERDICTS:
+            self.assertEqual(counts["all"][verdict],
+                             counts["motif"][verdict] + counts["domain"][verdict])
+        self.assertEqual(sum(counts["motif"].values()), len(_A["matrix"]) - 6)
+        self.assertEqual(sum(counts["domain"].values()), 6)
+        # #29's named domains are the documented case: all six diverge
+        self.assertEqual(counts["domain"]["divergent"], 6)
+        self.assertEqual(counts["domain"]["convergent"], 0)
+
+    def test_headline_counts_are_motif_only(self):
+        # the §1 sentence must quote the motif counts, never the all-rows
+        # counts.  The two differ in `divergent`, because #29's six domain
+        # rows all diverge -- so that is the number to pin.
+        counts = _A["summary"]["verdict_counts"]
+        n_motifs = len(_A["matrix"]) - 6
+        m = counts["motif"]
+        a = counts["all"]
+        d = counts["domain"]
+        self.assertNotEqual(m["divergent"], a["divergent"])
+
+        def headline(c, n):
+            return (f"Of {n} motif rows, {c['convergent']} are **convergent** "
+                    f"(mean pairwise Jaccard >= {tri.JACCARD_STRONG:.2f}), "
+                    f"{c['partial']} **partial**, {c['divergent']} "
+                    f"**divergent**")
+
+        self.assertIn(headline(m, n_motifs) + f" and {m['untestable']} untestable",
+                      _A["report"])
+        self.assertNotIn(headline(a, n_motifs), _A["report"])
+        self.assertIn(f"These counts are the {n_motifs} motif rows only.",
+                      _A["report"])
+        # the domain split is stated too, so neither count is quoted alone
+        self.assertIn(
+            f"{d['convergent']} convergent, {d['partial']} partial, "
+            f"{d['divergent']} divergent, {d['untestable']} untestable, for "
+            f"{len(_A['matrix'])} matrix rows in total",
+            _A["report"])
+
     def test_verdict_thresholds_are_respected(self):
         for row in _A["matrix"]:
             mean_j = row["mean_pair_jaccard"]

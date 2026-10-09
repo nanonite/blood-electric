@@ -158,6 +158,7 @@ PURITY_STRONG = 0.50       # a method "owns" a motif at this purity or above
 JACCARD_STRONG = 0.50      # mean pairwise Jaccard -> "convergent"
 JACCARD_WEAK = 0.30        # mean pairwise Jaccard -> "divergent"
 MIN_CLAUSES = 10           # below this a row is reported but not judged
+VERDICTS = ("convergent", "partial", "divergent", "untestable")
 KMEANS_K = 12              # #40's disclosed catalogue k
 KMEANS_N_INIT = 10
 KMEANS_MAX_ITER = 300
@@ -1186,8 +1187,15 @@ def build(out_dir: Path = OUT, permutations: int = PERMUTATIONS,
 
     diag["rows_with_clauses"] = sum(1 for row in motif_rows if row["n_clauses"])
     diag["rows_zero_clauses"] = sum(1 for row in motif_rows if not row["n_clauses"])
-    for verdict in ("convergent", "partial", "divergent", "untestable"):
-        diag[verdict] = sum(1 for row in motif_rows if row["verdict"] == verdict)
+    # Verdict counts are split by row kind.  The matrix mixes 39 motif rows with
+    # #29's six domain rows, and quoting the combined count as a motif count
+    # overstates the divergence by however many domains diverge.
+    for kind in ("motif", "domain", "all"):
+        rows_of_kind = [row for row in motif_rows
+                        if kind == "all" or row["kind"] == kind]
+        for verdict in VERDICTS:
+            diag[f"{kind}_{verdict}"] = sum(
+                1 for row in rows_of_kind if row["verdict"] == verdict)
     verdicts = sorted({p["verdict"] for p in periodicity_rows})
     diag["per_verdict_kinds"] = len(verdicts)
     for v in verdicts:
@@ -1211,8 +1219,11 @@ def build(out_dir: Path = OUT, permutations: int = PERMUTATIONS,
         "mean_pairwise_ari": mean([agree[p] for p in PAIRS]),
         "max_p_permutation": max(float(x["p_permutation_ari"]) for x in agree_rows),
         "published_term_level_ari": published_ari,
-        "verdict_counts": {v: diag[v] for v in
-                           ("convergent", "partial", "divergent", "untestable")},
+        "verdict_counts": {kind: {v: diag[f"{kind}_{v}"] for v in VERDICTS}
+                           for kind in ("motif", "domain", "all")},
+        "n_rows_by_kind": {kind: sum(1 for row in motif_rows
+                                     if row["kind"] == kind)
+                           for kind in ("motif", "domain")},
         "periodicity_counts": {
             v: sum(1 for p in periodicity_rows if p["verdict"] == v)
             for v in verdicts},
@@ -1425,7 +1436,9 @@ def render_report(summary, motif_rows, wide, agree_rows, clause_rows_out,
                                            -x["n_clauses"], x["motif"]))
     weakest = sorted([x for x in motifs if x["mean_pair_jaccard"] is not None],
                      key=lambda x: (x["mean_pair_jaccard"], x["motif"]))
-    counts = summary["verdict_counts"]
+    counts = summary["verdict_counts"]["motif"]
+    domain_counts = summary["verdict_counts"]["domain"]
+    n_domains = len(domains)
     per_counts = summary["periodicity_counts"]
     n_periodic = sum(n for v, n in per_counts.items() if v.startswith("periodic"))
     top5 = ranked[:5]
@@ -1453,7 +1466,14 @@ def render_report(summary, motif_rows, wide, agree_rows, clause_rows_out,
          counts["divergent"], counts["untestable"], MIN_CLAUSES)
       + ", ".join("`%s` (%s)" % (x["motif"], f2(x["mean_pair_jaccard"]))
                   for x in top5)
-      + " -- the same poles #29, #40 and #41 each reported on their own.")
+      + " -- the same poles #29, #40 and #41 each reported on their own.  "
+      "(These counts are the %d motif rows only.  #29's %d named-domain rows "
+      "are scored separately in §8 and are counted separately throughout: %d "
+      "convergent, %d partial, %d divergent, %d untestable, for %d matrix rows "
+      "in total.)"
+      % (len(motifs), n_domains, domain_counts["convergent"],
+         domain_counts["partial"], domain_counts["divergent"],
+         domain_counts["untestable"], len(motif_rows)))
     A("2. **Clause-level agreement is weak but consistently above chance.**  The "
       "mean pairwise adjusted Rand over the %d clauses is %.4f, and the worst "
       "of the %d pairs still has permutation p = %s.  The methods share "
