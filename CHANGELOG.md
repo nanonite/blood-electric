@@ -6,6 +6,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Triangulation / convergence report (#73)
 - Reference corpora + keyness harness (#56)
 - Periodicity and spectral analysis (#51)
 - Topic modelling (LDA/NMF/BERTopic) (#41)
