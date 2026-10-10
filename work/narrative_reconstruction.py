@@ -482,7 +482,9 @@ def build_pairs(events):
     """Directed actor->target pairs: the narrative backbone."""
     agg = collections.defaultdict(lambda: {"n": 0, "verbs":
                                            collections.Counter(),
-                                           "first": None, "last": None})
+                                           "first": None, "last": None,
+                                           "first_key": None,
+                                           "last_key": None})
     for e in events:
         if not (e["actor"] and e["target"]):
             continue
@@ -490,10 +492,13 @@ def build_pairs(events):
         a = agg[key]
         a["n"] += 1
         a["verbs"][e["verb"]] += 1
-        if a["first"] is None or e["event_id"] < a["first"]:
+        cite_key = (int(e["page"]), int(e["verb_start"]))
+        if a["first_key"] is None or cite_key < a["first_key"]:
             a["first"] = e["cite"]
-        if a["last"] is None or e["event_id"] > a["last"]:
+            a["first_key"] = cite_key
+        if a["last_key"] is None or cite_key > a["last_key"]:
             a["last"] = e["cite"]
+            a["last_key"] = cite_key
     rows = [{"actor": k[0], "target": k[1], "n_events": v["n"],
              "top_verbs": _top(v["verbs"]),
              "first_cite": v["first"], "last_cite": v["last"]}
@@ -509,8 +514,8 @@ ARC_KEYS = [("n_adam", "ADAM"), ("n_anti_adam", "ANTI-ADAM"),
             ("n_tokage", "ToKAGE"), ("n_adam_doll", "ADAM Doll")]
 
 
-def build_arcs(events, mention_pages, n_pages, mentions_by_page):
-    """Event volume and principal-actor mentions per 20-page arc."""
+def build_arcs(events, mention_page_counts, n_pages, mentions_by_page):
+    """Event volume and principal-actor mention counts per 20-page arc."""
     rows = []
     for lo in range(1, n_pages + 1, ARC):
         hi = min(lo + ARC - 1, n_pages)
@@ -520,8 +525,9 @@ def build_arcs(events, mention_pages, n_pages, mentions_by_page):
                "n_mentions": sum(c for p, c in mentions_by_page.items()
                                  if lo <= p <= hi)}
         for col, name in ARC_KEYS:
-            row[col] = sum(1 for p in mention_pages.get(name, ())
-                           if lo <= p <= hi)
+            row[col] = sum(count for (entity, page), count
+                           in mention_page_counts.items()
+                           if entity == name and lo <= page <= hi)
         rows.append(row)
     return rows
 
@@ -900,7 +906,8 @@ def build(out=OUT, pages=None, quiet=False):
     for (ent, page), c in mention_page_counts.items():
         mentions_by_page[page] += c
     n_pages = max(selected_pages) if selected_pages else 0
-    arc_rows = build_arcs(events, mention_pages, n_pages, mentions_by_page)
+    arc_rows = build_arcs(events, mention_page_counts, n_pages,
+                          mentions_by_page)
 
     pat = collections.Counter(e["pattern"] for e in events)
     conf = collections.Counter(e["confidence"] for e in events)
@@ -1211,6 +1218,9 @@ def write_report(path, summary, actor_rows, pair_rows, arc_rows, syn_rows,
             A("")
 
     A("## 7. Where the events are (20-page arcs)")
+    A("")
+    A("Entity columns count surface mentions in each page range; "
+      "n_mentions counts all tracked entities.")
     A("")
     A("| arc | events | mentions | ADAM | ANTi-ADAM | Sato Corporation "
       "| Super Cherry 666 | the dog | self | ToKAGE | ADAM Doll |")

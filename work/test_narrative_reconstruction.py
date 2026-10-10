@@ -355,20 +355,34 @@ class TestAggregates(unittest.TestCase):
         self.assertEqual(rows[("the dog", "ADAM")]["n_events"], 1)
         self.assertNotIn(("self", ""), rows)     # AV rows are not pairs
 
+    def test_pair_first_and_last_cites_follow_book_order(self):
+        events = [
+            {"actor": "ADAM", "target": "the dog", "verb": "later",
+             "event_id": "e00001", "page": 120, "verb_start": 4,
+             "cite": "p120:4"},
+            {"actor": "ADAM", "target": "the dog", "verb": "earlier",
+             "event_id": "e00002", "page": 4, "verb_start": 20,
+             "cite": "p4:20"},
+        ]
+        row = nr.build_pairs(events)[0]
+        self.assertEqual(row["first_cite"], "p4:20")
+        self.assertEqual(row["last_cite"], "p120:4")
+
     def test_arcs_bucket_pages(self):
         events = [{"page": 5}, {"page": 25}, {"page": 45}]
-        mention_pages = {"ADAM": {5, 25}, "the dog": {45}}
-        rows = nr.build_arcs(events, mention_pages, 60,
+        mention_page_counts = {("ADAM", 5): 3, ("ADAM", 25): 4,
+                               ("the dog", 45): 2}
+        rows = nr.build_arcs(events, mention_page_counts, 60,
                              {5: 2, 25: 1, 45: 4})
         by_arc = {r["arc"]: r for r in rows}
         self.assertEqual(sorted(by_arc), ["p1-20", "p21-40", "p41-60"])
         self.assertEqual(by_arc["p1-20"]["n_events"], 1)
         self.assertEqual(by_arc["p1-20"]["n_mentions"], 2)
-        self.assertEqual(by_arc["p1-20"]["n_adam"], 1)
+        self.assertEqual(by_arc["p1-20"]["n_adam"], 3)
         self.assertEqual(by_arc["p21-40"]["n_events"], 1)
-        self.assertEqual(by_arc["p21-40"]["n_adam"], 1)
+        self.assertEqual(by_arc["p21-40"]["n_adam"], 4)
         self.assertEqual(by_arc["p41-60"]["n_events"], 1)
-        self.assertEqual(by_arc["p41-60"]["n_dog"], 1)
+        self.assertEqual(by_arc["p41-60"]["n_dog"], 2)
 
 
 # ---------------------------------------------------------------------------
