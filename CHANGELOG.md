@@ -6,6 +6,36 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- Translations as an interpretive oracle, `analysis/translation_oracle/` (#58) — L7's
+  "interpretive oracle", run as both a **documented negative result** and a working alignment.
+  *Negative:* the A. Skobin Russian edition could not be obtained lawfully, and that is the
+  finding rather than a failure to finish — 21 candidate sources probed and pinned
+  (`sources.tsv`), the edition being a commercial 2006 АСТ/Адаптек printing (ISBN 5-17-037280-9)
+  that FantLab catalogues but serves no text of, while the only full texts on the open web are
+  eight unauthorized mirrors that the ingestion gate refuses after a **HEAD-only** probe (no
+  mirror body is ever requested); the nettime thread named in the methods inventory is recorded
+  as searched-not-found, not dropped. *Positive:* the signal was obtainable from material that
+  is lawfully quotable — twelve short attributed quotations of the translation that Russian
+  readers publish inside their FantLab reviews — and **the Russian edition preserves the book's
+  operator channel verbatim**, which makes the symbol stream a translation-invariant key: two long
+  quotations are located by **operator skeleton alone, with no lexical anchor**, at **100%
+  positional operator retention** (RUQ01 16/16, its sequence unique among the corpus's 10,145
+  operator tokens; RUQ02 12/12, matching twice at byte-identical sites pp. 5 and 221 — a finding
+  about the book's loop rather than the aligner). 11 of 12 quotations resolve to a single English
+  text; the bilingual lexicon publishes **17 attested** EN↔RU pairs (`tomb-device` →
+  «могильное устройство», `boyroid` → «бойроида», `Cadaver City` → «Город Трупов») graded against
+  the anchor priors that produced them, and one **divergence** is flagged rather than resolved
+  (the reader's «ЛИКВИДАЦИЯ» against the English `abolition`). The aligner is a monotone DP with a
+  bounded n-m diagonal, scored by standard AER against a built-in 24-pair EN–RU gold with planted
+  1-n / n-1 operations — weights fitted on a **tuning half**, reported on a **held-out half**
+  (0.2637 vs a length-only proportional baseline's 0.8481). The author's own lexicon is tested
+  against the book: the two nouns the interviewer names (`ADAM` 509, `dogs` 495) are
+  corroborated, the essayistic vocabulary around them (`hardweb`, `creature intensity`,
+  `echo archive`) is **absent from the book**, and the two that do occur (`gene-dub`,
+  `Biocapture`) occur once each, both as chapter headings — a claim about the interviews, not
+  about the book. New: `work/translation_oracle.py` + `work/test_translation_oracle.py` (72
+  tests). Offline and deterministic: the acquisition evidence is a pinned record of a dated probe
+  run, and `--probe` re-runs the HTTP requests and diffs them against the pins.
 - Coverage accounting / residue ledger, `analysis/coverage_ledger/` (#70) — one ledger over the
   whole corpus at four levels, each forced to close: **480,962 page-body characters** (390,469 word /
   17,269 operator / 1,735 punctuation / 71,021 whitespace / 468 layout scaffolding, **0 unexplained**),
