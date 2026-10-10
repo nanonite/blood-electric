@@ -6,6 +6,24 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- Coverage accounting / residue ledger, `analysis/coverage_ledger/` (#70) — one ledger over the
+  whole corpus at four levels, each forced to close: **480,962 page-body characters** (390,469 word /
+  17,269 operator / 1,735 punctuation / 71,021 whitespace / 468 layout scaffolding, **0 unexplained**),
+  **90,220 tokens** (#14's 77,485 Lex nodes, #17's 11,000 operators), **11,000 operator tokens**
+  each with exactly one #17 role (2,816 seams, 7,247 segment operators, 937 unbound), and
+  **74,665 unit occurrences** (74,318 with a #19 category + 347 in #19's markup ledger; `5,868 + 8 =
+  5,876` types). The **coverage metric** is the share of a level with no unexplained residue — 1.000000
+  at all four levels, and a build failure if it ever drops. The residue ledger publishes 11 classes of
+  awkward residue with owners, pages and page-cited examples, two of which no artifact itemized: the
+  **13 book-text occurrences deleted by #27's tag-run screen** (the OCR wrapped printed text in
+  `<a href="...">` anchors on pp. 158 and 219, so the 241 "tag-furniture" occurrences #27 publishes
+  are 13 text occurrences larger than that description) and the **2 unit surfaces #17 and #19 store
+  with a different number of backslashes** (`eruption=\njunk` p102, `device++\nmass` p209), which a
+  surface-level join across the two artifacts loses. 14 downstream layers' kept/dropped splits are
+  checked in one place, and #47's 480,309-char stream is reconciled to the raw 480,962 (comments →
+  space, 197 heading-marker chars stripped). New: `work/coverage_ledger.py` +
+  `work/test_coverage_ledger.py` (42 tests, including planted-residue tests that prove the coverage
+  detector fires).
 - Within-text language viability assessment, `analysis/language_viability/` (#56, revised scope) —
   six pre-registered held-out checks plus a negative control, scored against within-text nulls
   (within-page / within-run / within-clause / within-unit shuffle and a vocabulary bijection) with
