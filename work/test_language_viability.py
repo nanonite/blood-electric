@@ -131,14 +131,53 @@ class CrossEntropyTest(unittest.TestCase):
         expected = -(math.log2(2.0 / 3.0) + math.log2(1.0 / 3.0)) / 2.0
         self.assertAlmostEqual(ce, expected, places=6)
 
-    def test_heldout_ce_smoothing_helps_oov(self):
-        # a test transition whose context is unseen in train:
-        # the ML term is 0, so the interpolated probability is
-        # the smoothed unigram mass -- finite, not inf.
-        # train [a a b] -> p0(a) = 2/3; lam=0.5 -> P(a|q) = 1/3.
+    def test_heldout_ce_unseen_context_backs_off_to_unigram(self):
+        # An unseen context has no reliable context model, so it backs
+        # off directly to the normalized unigram distribution.
+        # train [a a b] -> p0(a) = 2/3, independent of lambda.
         seqmap = {"tr": [["a", "a", "b"]], "te": [["q", "a"]]}
         ce = lv.heldout_ce(seqmap, ["tr"], ["te"], 1, 0.5)
-        self.assertAlmostEqual(ce, -math.log2(1.0 / 3.0), places=6)
+        self.assertAlmostEqual(ce, -math.log2(2.0 / 3.0), places=6)
+
+    def test_heldout_ce_order2_recursively_backs_off(self):
+        # For context (a,b), P(a|b)=0.75 after order-1 interpolation,
+        # so P(a|a,b)=0.5*1 + 0.5*0.75 = 0.875.
+        seqmap = {"tr": [["a", "b", "a", "b"]],
+                  "te": [["a", "b", "a", "b"]]}
+        ce = lv.heldout_ce(seqmap, ["tr"], ["te"], 2, 0.5)
+        self.assertAlmostEqual(ce, -math.log2(0.875), places=6)
+
+    def test_heldout_ce_order3_recursively_backs_off(self):
+        # The probability backs off through P(b|a)=0.7, then
+        # P(b|b,a)=0.85, then P(b|a,b,a)=0.925.
+        seqmap = {"tr": [["a", "b", "a", "b", "a"]],
+                  "te": [["a", "b", "a", "b"]]}
+        ce = lv.heldout_ce(seqmap, ["tr"], ["te"], 3, 0.5)
+        self.assertAlmostEqual(ce, -math.log2(0.925), places=6)
+
+    def test_interpolated_context_distributions_are_normalized(self):
+        seqmap = {"tr": [["a", "b", "a", "b", "a"]]}
+        uni, ctxs = lv._context_counts(seqmap, ["tr"], 3)
+        total, vocab_size = sum(uni.values()), len(uni)
+
+        def p0(w):
+            return (uni[w] + 1e-9) / (total + 1e-9 * vocab_size)
+
+        contexts = [(), ("a",), ("b", "a"), ("a", "b", "a"),
+                    ("missing", "a", "b")]
+        for context in contexts:
+            with self.subTest(context=context):
+                mass = sum(lv._jm_probability(w, context, ctxs, p0, 0.5)
+                           for w in uni)
+                self.assertAlmostEqual(mass, 1.0, places=9)
+
+        # An unseen maximum-order context backs off without losing mass.
+        for w in uni:
+            self.assertAlmostEqual(
+                lv._jm_probability(w, ("missing", "a", "b"),
+                                   ctxs, p0, 0.5),
+                lv._jm_probability(w, ("a", "b"), ctxs, p0, 0.5),
+                places=12)
 
     def test_tune_lambda_picks_grid_point(self):
         seqmap = {"tr": [["a", "a", "b"]], "va": [["a", "b"]]}
@@ -526,7 +565,17 @@ class ArtifactTest(unittest.TestCase):
                              self.train, self.test, 1, lam)
               for _ in range(10)]
         self.assertEqual(n1, n2)
-        self.assertAlmostEqual(book, 8.3379, places=2)
+        self.assertAlmostEqual(book, 8.2619, places=2)
+        higher_order = {}
+        for order in (2, 3):
+            order_lam, _ = lv.tune_lambda(
+                flat, self.train[::2], self.train[1::2], order)
+            higher_order[order] = lv.heldout_ce(
+                flat, self.train, self.test, order, order_lam)
+        self.assertAlmostEqual(higher_order[2], 8.2366, places=2)
+        self.assertAlmostEqual(higher_order[3], 8.2799, places=2)
+        self.assertLess(higher_order[2], book)
+        self.assertGreater(higher_order[3], book)
 
     def test_gloss_passages_are_located_and_grounded(self):
         entity_glossary = lv.load_entity_glossary()

@@ -61,7 +61,7 @@ Verdict (pre-registered): >= 5 of 6 checks pass -> VIABLE (bounded);
 3–4 -> PARTIALLY VIABLE; <= 2 -> NOT VIABLE.  "Bounded" is earned by
 the bound diagnostics, not assumed: the order sweep (D1) measures how
 far predictability extends, the chronological split (D2) measures
-drift, and the sensitivity run (D3) re-measures everything without
+drift, and the sensitivity run (D3) re-measures V1 without
 the OCR-artifact pages.
 
 Meaning extraction reuses the frozen workspace artifacts — the #17
@@ -398,6 +398,37 @@ def load_kwic_examples(max_per_term=2, max_chars=70):
 # n-gram cross-entropy (Jelinek-Mercer interpolation, #11's estimator)
 # ---------------------------------------------------------------------------
 
+def _context_counts(seqmap, train, order):
+    """Collect continuation counts for every context length through order."""
+    uni = collections.Counter()
+    ctxs = collections.defaultdict(collections.Counter)
+    for p in train:
+        for seq in seqmap[p]:
+            uni.update(seq)
+            for n in range(1, order + 1):
+                for i in range(len(seq) - n):
+                    ctxs[tuple(seq[i:i + n])][seq[i + n]] += 1
+    return uni, ctxs
+
+
+def _jm_probability(w, context, ctxs, p0, lam):
+    """Recursively interpolate a context with its suffix model.
+
+    Unseen contexts back off directly: applying the interpolation weight
+    to an empty maximum-likelihood distribution would lose probability
+    mass and make the resulting distribution unnormalized.
+    """
+    if not context:
+        return p0(w)
+    counts = ctxs.get(context)
+    if not counts:
+        return _jm_probability(w, context[1:], ctxs, p0, lam)
+    total = sum(counts.values())
+    ml = counts[w] / total
+    lower = _jm_probability(w, context[1:], ctxs, p0, lam)
+    return lam * ml + (1 - lam) * lower
+
+
 def heldout_ce(seqmap, train, test, order, lam):
     """Held-out cross-entropy in bits per item.
 
@@ -405,45 +436,20 @@ def heldout_ce(seqmap, train, test, order, lam):
              (units for V1, part tokens for V6).  Transitions are scored
              within sequences only.
     """
-    uni = collections.Counter()
-    ctxs = collections.defaultdict(collections.Counter)
-    for p in train:
-        for seq in seqmap[p]:
-            uni.update(seq)
-            for i in range(len(seq) - order):
-                ctxs[tuple(seq[i:i + order])][seq[i + order]] += 1
+    uni, ctxs = _context_counts(seqmap, train, order)
     tot = sum(uni.values()) or 1
     V = len(uni)
 
     def p0(w):
         return (uni[w] + 1e-9) / (tot + 1e-9 * V)
 
-    def pn(w, c):
-        if order == 0:
-            return p0(w)
-        na = sum(ctxs[c].values())
-        ml = ctxs[c][w] / na if na else 0.0
-        if order == 1:
-            lower = p0(w)
-        elif order == 2:
-            na1 = sum(ctxs[(c[1],)].values())
-            lower = (lam * ctxs[(c[1],)][w] / na1 if na1 else 0.0) \
-                + (1 - lam) * p0(w)
-        else:
-            na2 = sum(ctxs[(c[1], c[2])].values())
-            na1 = sum(ctxs[(c[2],)].values())
-            p1v = (lam * ctxs[(c[2],)][w] / na1 if na1 else 0.0) \
-                + (1 - lam) * p0(w)
-            lower = (lam * ctxs[(c[1], c[2])][w] / na2 if na2 else 0.0) \
-                + (1 - lam) * p1v
-        return lam * ml + (1 - lam) * lower
-
     ls, n = 0.0, 0
     for p in test:
         for seq in seqmap[p]:
             for i in range(len(seq) - order):
-                ls += math.log2(max(pn(seq[i + order],
-                                       tuple(seq[i:i + order])), 1e-12))
+                ls += math.log2(max(_jm_probability(
+                    seq[i + order], tuple(seq[i:i + order]), ctxs,
+                    p0, lam), 1e-12))
                 n += 1
     return -ls / n if n else 0.0
 
@@ -1682,7 +1688,7 @@ def write_report(out, summary, checks, v, n_pass, termbase,
             "**stable term senses** that make meaning extraction "
             "defensible (V5). This is a positive viability verdict with "
             "an explicit bound: everything that passes is *local* "
-            "(bigram-level, construction-level); the bound diagnostics "
+            "(short-context, construction-level); the bound diagnostics "
             "below show what does *not* generalize."
             % (v, n_pass))
     elif v.startswith("PARTIALLY"):
@@ -1710,8 +1716,7 @@ def write_report(out, summary, checks, v, n_pass, termbase,
     add("")
     add("## 4. Where viability ends (bound diagnostics)")
     add("")
-    add("### D1 — order sweep: predictability does not extend past "
-        "the bigram")
+    add("### D1 — order sweep: does a longer context help?")
     add("")
     add(md_table(["n-gram order", "λ (tuned on train-internal "
                       "validation)", "validation CE", "held-out CE"],
@@ -1721,25 +1726,40 @@ def write_report(out, summary, checks, v, n_pass, termbase,
                    "held-out CE": _fmt(r["test_ce"])}
                   for r in sweep]))
     add("")
-    add("With λ tuned per order on a train-internal validation "
-        "split, **order-2 and order-3 models never beat order-1 on "
-        "held-out pages** (%s and %s vs %s bits/unit). The "
-        "recoverable grammar is local: the unit following the "
-        "previous one is predictable; the unit after that is not. "
-        "The tuner chose the *smallest* λ in the grid for both higher "
-        "orders (%s), i.e. it wanted to lean further towards the "
-        "lower-order model than the grid allows — the grid floor is a "
-        "limit on how far the sweep could search, not evidence that a "
-        "tuned order-2 model would win. This triangulates #11 (shallow "
-        "local run syntax), #47 "
-        "(the operator channel gains nothing from context) and #51 "
-        "(no latent periodicity): the book's \"loop\" lives in "
-        "lexical repetition and construction recurrence, not in "
-        "long-range or metrical structure."
-        % (_fmt(sweep[2]["test_ce"]), _fmt(sweep[3]["test_ce"]),
-           _fmt(sweep[1]["test_ce"]),
-           ", ".join("order-%d λ=%s" % (r["order"], r["lam"])
-                     for r in sweep[2:])))
+    order1 = next(r for r in sweep if r["order"] == 1)
+    higher = [r for r in sweep if r["order"] > 1]
+    best_higher = min(higher, key=lambda r: r["test_ce"])
+    gain = order1["test_ce"] - best_higher["test_ce"]
+    order3 = next((r for r in sweep if r["order"] == 3), None)
+    if gain > 0:
+        order3_text = (" Order-3 held-out CE is %s bits/unit." %
+                       _fmt(order3["test_ce"]) if order3 else "")
+        d1_text = (
+            "With λ tuned per order on a train-internal validation split, "
+            "the best longer-context model is order-%d: held-out CE is "
+            "%s vs %s bits/unit for order-1, a modest improvement of "
+            "%s bits/item (%.2f%%).%s This difference has no separate "
+            "uncertainty test, so treat it as a small short-context gain, "
+            "not a robust long-range result. The book's recoverable "
+            "structure remains local; the order sweep does not support "
+            "a global grammar or metrical cycle. This triangulates #11 "
+            "(shallow local run syntax), #47 (the operator channel gains "
+            "little from context) and #51 (no latent periodicity)."
+            % (best_higher["order"], _fmt(best_higher["test_ce"]),
+               _fmt(order1["test_ce"]), _fmt(gain),
+               100.0 * gain / order1["test_ce"], order3_text))
+    else:
+        d1_text = (
+            "With λ tuned per order on a train-internal validation split, "
+            "no longer-context model improves on order-1: the best is "
+            "order-%d at %s vs %s bits/unit. This bounds the recoverable "
+            "grammar to short local contexts, with no evidence here for "
+            "long-range structure. This triangulates #11 (shallow local "
+            "run syntax), #47 (the operator channel gains little from "
+            "context) and #51 (no latent periodicity)."
+            % (best_higher["order"], _fmt(best_higher["test_ce"]),
+               _fmt(order1["test_ce"])))
+    add(d1_text)
     add("")
     add("### D2 — chronological stability")
     add("")
@@ -1890,10 +1910,11 @@ def write_report(out, summary, checks, v, n_pass, termbase,
         "D3 sensitivity run shows V1's result does not depend on the "
         "three recognition-loop pages — but per-token confidence in "
         "the glosses inherits OCR uncertainty.")
-    add("* **Local structure only.** Every passing check is "
-        "bigram- or construction-level (D1). No claim is made "
-        "about long-range narrative, global grammar, or a "
-        "generative system: order-2/3 models do not generalize.")
+    add("* **Local structure only.** The lexical order sweep shows "
+        "whether adding up to two prior items helps, and the operator "
+        "check tests only bigrams; neither tests long-range narrative, "
+        "global grammar, or a generative system. The D1 higher-order "
+        "difference is small and has no separate uncertainty test.")
     add("* **Glosses are constrained, not translations.** The "
         "translation in §5.2 is a literal rendering of the "
         "recoverable skeleton; coinages are glossed "
