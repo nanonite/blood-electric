@@ -57,6 +57,10 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Interlinear edition generator (#62)
+- Termbase and consistency enforcement (#65)
+- Coverage accounting / residue ledger (#70)
+- Narrative reconstruction / entity-event tracking (#66)
 - Triangulation / convergence report (#73)
 - Reference corpora + keyness harness (#56)
 - Periodicity and spectral analysis (#51)
