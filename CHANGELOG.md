@@ -26,14 +26,17 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   «могильное устройство», `boyroid` → «бойроида», `Cadaver City` → «Город Трупов») graded against
   the anchor priors that produced them, and one **divergence** is flagged rather than resolved
   (the reader's «ЛИКВИДАЦИЯ» against the English `abolition`). The aligner is a monotone DP with a
-  bounded n-m diagonal, scored by standard AER against a built-in 24-pair EN–RU gold with planted
+  bounded n-m diagonal, scored by standard AER (Gale & Church / Levow: deletions + insertions
+  of null-collapsed links over the gold links of the same split — an error rate per gold link, so
+  it is not bounded above by 1) against a built-in 24-pair EN–RU gold with planted
   1-n / n-1 operations — weights fitted on a **tuning half**, reported on a **held-out half**
-  (0.2637 vs a length-only proportional baseline's 0.8481). The author's own lexicon is tested
+  (**0.5385 against a length-only proportional baseline's 1.8205 on that same held-out half**;
+  0.4051 vs 1.9114 over all twelve documents). The author's own lexicon is tested
   against the book: the two nouns the interviewer names (`ADAM` 509, `dogs` 495) are
   corroborated, the essayistic vocabulary around them (`hardweb`, `creature intensity`,
   `echo archive`) is **absent from the book**, and the two that do occur (`gene-dub`,
   `Biocapture`) occur once each, both as chapter headings — a claim about the interviews, not
-  about the book. New: `work/translation_oracle.py` + `work/test_translation_oracle.py` (72
+  about the book. New: `work/translation_oracle.py` + `work/test_translation_oracle.py` (80
   tests). Offline and deterministic: the acquisition evidence is a pinned record of a dated probe
   run, and `--probe` re-runs the HTTP requests and diffs them against the pins.
 - Coverage accounting / residue ledger, `analysis/coverage_ledger/` (#70) — one ledger over the

@@ -236,14 +236,60 @@ class TestAligner(unittest.TestCase):
         self.assertEqual(to.alignment_error_rate(gold, [(0, 0), (1, 1), (2, 2)]), 0.0)
 
     def test_aer_fires_on_a_planted_error(self):
+        """One correct link, two substitutions.  Standard AER charges the two
+        missing gold links and the two spurious hypothesis links: 4 errors
+        over 3 gold links.  It is an error rate, not a proportion, so it may
+        exceed 1."""
         gold = [(0, 0), (1, 1), (2, 2)]
         hyp = [(0, 0), (1, 2), (2, 1)]
-        self.assertAlmostEqual(to.alignment_error_rate(gold, hyp), 2 / 3)
+        self.assertAlmostEqual(to.alignment_error_rate(gold, hyp), 4 / 3)
 
     def test_aer_penalises_missing_links(self):
+        """A hypothesis that drops gold links must be charged for them.  This
+        is the deletion term of the standard metric; without it the score
+        collapses to precision and is gamed by proposing one confident link."""
         gold = [(0, 0), (1, 1), (2, 2)]
         hyp = [(0, 0)]
-        self.assertEqual(to.alignment_error_rate(gold, hyp), 0.0)  # recall is not AER
+        self.assertAlmostEqual(to.alignment_error_rate(gold, hyp), 2 / 3)
+
+    def test_aer_penalises_spurious_links(self):
+        gold = [(0, 0)]
+        hyp = [(0, 0), (1, 1), (2, 2)]
+        self.assertAlmostEqual(to.alignment_error_rate(gold, hyp), 2.0)
+
+    def test_aer_of_an_empty_hypothesis_is_one(self):
+        """The degenerate-aligner floor: proposing nothing is maximally wrong,
+        not perfect."""
+        gold = [(0, 0), (1, 1), (2, 2)]
+        self.assertEqual(to.alignment_error_rate(gold, []), 1.0)
+
+    def test_aer_of_an_empty_gold_is_zero(self):
+        self.assertEqual(to.alignment_error_rate([], []), 0.0)
+
+    def test_aer_matches_the_published_decomposition(self):
+        """`((G - correct) + (H - correct)) / G`, recomputed by hand on the
+        built-in gold.  Pins the two terms - deletions and insertions - to the
+        counts the artifacts publish as `n_gold_links`."""
+        for en_sents, ru_sents, gold in to.build_gold_documents():
+            en_units = [to.Unit(s, "", 0, len(s)) for s in en_sents]
+            ru_units = [to.Unit(s, "", 0, len(s)) for s in ru_sents]
+            links = to.align_units(en_units, ru_units)
+            hyp = [(lk.en[0], lk.ru[0] if len(lk.ru) == 1 else lk.ru)
+                   for lk in links if lk.en and lk.ru]
+            collapsed = to.collapse(gold)
+            gmap = {}
+            for i, j in collapsed:
+                if i is None or j is None:
+                    continue
+                for ii in i:
+                    gmap[ii] = j
+            hc = to.collapse(hyp)          # the metric compares collapsed sets
+            correct = sum(1 for i, j in hc
+                          if i is not None and j is not None
+                          and gmap.get(i[0]) == j)
+            h = sum(1 for i, j in hc if i is not None and j is not None)
+            expected = ((len(gmap) - correct) + (h - correct)) / len(gmap)
+            self.assertAlmostEqual(to.alignment_error_rate(gold, hyp), expected, places=12)
 
     def test_gold_documents_plant_the_documented_operations(self):
         docs = to.build_gold_documents()
@@ -277,6 +323,20 @@ class TestAligner(unittest.TestCase):
                     if r["system"] == "proportional" and r["document"] == "ALL")
         self.assertLess(dp, 0.5)
         self.assertLess(dp, base)
+
+    def test_baseline_is_reported_on_the_same_split_as_the_aligner(self):
+        """The headline comparison is same-split.  Reading the DP held-out
+        number against the baseline's all-documents number would flatter the
+        aligner, so both are published per split and compared per split."""
+        rows = to.evaluate_aligner()
+
+        def aer_of(system, split):
+            return next(r["aer"] for r in rows
+                        if r["system"] == system and r["split"] == split
+                        and r["document"] == "SUBTOTAL")
+
+        for split in ("tuning", "held_out"):
+            self.assertLess(aer_of("dp", split), aer_of("proportional", split))
 
     def test_held_out_half_is_reported(self):
         rows = to.evaluate_aligner()
@@ -516,8 +576,34 @@ class TestArtifacts(unittest.TestCase):
                     "mirrors_refused", "quotations_pinned",
                     "quotations_uniquely_located", "aligned_1_1_unit_pairs",
                     "aligner_aer_held_out_half", "baseline_aer_proportional",
+                    "baseline_aer_held_out_half",
                     "lexicon_pairs_withheld_low_token_ratio"):
             self.assertIn(key, self.diag)
+
+    def test_published_holdout_figures_come_from_one_split(self):
+        """The headline pair must be DP held-out against *baseline held-out*,
+        not against the baseline's all-documents figure."""
+        self.assertLess(float(self.diag["aligner_aer_held_out_half"]),
+                        float(self.diag["baseline_aer_held_out_half"]))
+
+    def test_summary_json_reports_both_splits_of_both_systems(self):
+        import json
+        summary = json.loads((ART / "summary.json").read_text(encoding="utf-8"))
+        for key in ("aligner_aer_held_out_half", "baseline_aer_held_out_half",
+                    "aligner_aer_builtin_gold", "baseline_aer_proportional",
+                    "corpus_operator_tokens"):
+            self.assertEqual(str(summary[key]), self.diag[key], key)
+
+    def test_reports_state_the_operator_token_count_they_were_built_from(self):
+        """`10,145` is a measured figure, not a figure to be typed into prose:
+        both reports must agree with `diagnostics.tsv`."""
+        n = int(self.diag["corpus_operator_tokens"])
+        labelled = f"{n:,}"
+        for name in ("availability_report.md", "alignment_report.md"):
+            text = (ART / name).read_text(encoding="utf-8")
+            self.assertIn(labelled, text, name)
+            self.assertNotIn("11,000 ops", text, name)
+            self.assertNotIn("10,145", text.replace(labelled, ""), name)
 
     def test_reconciliation_states_the_negative_result(self):
         recon = {r["quantity"]: r for r in read_tsv(ART / "reconciliation.tsv")}

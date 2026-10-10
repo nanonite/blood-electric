@@ -1014,13 +1014,30 @@ def collapse(pairs: list[tuple]) -> list[tuple]:
 
 
 def alignment_error_rate(gold: list[tuple], hyp: list[tuple]) -> float:
-    """Standard AER (Gale & Church style) over null-collapsed link sets.
+    """Standard AER (Gale & Church style; Levow 2006) over null-collapsed links.
 
     Both sides are collapsed first, so a link is compared as a *set*: a
     hypothesis link ``((3,), (4, 5))`` is correct iff the gold has exactly
-    ``((3,), (4, 5))`` after collapse.  The denominator is the number of
-    collapsed gold links with both sides present, which is the definition
-    that makes AER comparable across alignments of different lengths.
+    ``((3,), (4, 5))`` after collapse.
+
+    The three error types of the standard metric are all charged, over a gold
+    denominator::
+
+        G = gold links with both sides present
+        correct = hypothesis links that match a gold link
+        AER = ((G - correct) + (H - correct)) / G,   H = hypothesis links
+
+    ``G - correct`` is *deletions* (a gold link the hypothesis never made, which
+    covers a wrong alignment as well, since the gold link is then missing) and
+    ``H - correct`` is *insertions*.  A hypothesis that proposes nothing scores
+    1.0, not 0.0 - without the deletion term this collapses to precision, which
+    an aligner can game by emitting a single confident link.
+
+    AER is a rate of errors *per gold link*, not a proportion of a fixed set,
+    so it is not bounded above by 1: a hypothesis that proposes many links the
+    gold does not have scores above 1.  That is a property of the metric, and
+    the numbers here are read as such - which is also why the proportional
+    baseline's figures are near 2 rather than near 1.
     """
     g = collapse(gold)
     h = collapse(hyp)
@@ -1030,14 +1047,17 @@ def alignment_error_rate(gold: list[tuple], hyp: list[tuple]) -> float:
             continue
         for ii in i:
             gmap[ii] = j
-    errors = total = 0
+    n_gold = len(gmap)
+    if not n_gold:
+        return 1.0 if h else 0.0
+    correct = total = 0
     for i, j in h:
         if i is None or j is None:
             continue
         total += 1
-        if gmap.get(i[0]) != j:
-            errors += 1
-    return (errors / total) if total else 1.0
+        if gmap.get(i[0]) == j:
+            correct += 1
+    return ((n_gold - correct) + (total - correct)) / n_gold
 
 
 #: 24 EN/RU sentence pairs authored for this harness (CC0 by construction: they
@@ -1177,6 +1197,12 @@ def evaluate_aligner(seed: int = GOLD_SEED, n_docs: int = 12) -> list[dict]:
     The gold is split into a tuning half and a held-out half.  The weights in
     this module were fitted on the tuning half; the held-out column is the
     number that means something.
+
+    The SUBTOTAL/ALL rows are exact corpus-level AER, not a mean of per-document
+    rates: because ``alignment_error_rate`` charges every error against the gold
+    links of its own document, summing ``aer * n_gold_links`` and dividing by
+    the summed gold links *is* ``total errors / total gold links`` over the
+    whole split.
     """
     docs = build_gold_documents(seed, n_docs)
     split_at = len(docs) // 2
@@ -1287,7 +1313,11 @@ def expand_window(corpus: Corpus, start: int, end: int,
     return max(left_min, left_op), min(right_max, right_op)
 
 
-_WORD_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
+#: Latin-only word pattern, used to index the English corpus and the English
+#: side of a unit pair.  Deliberately not `[^\W\d_]+`: the anchors and the
+#: anchor table are English words, so a non-Latin glyph must not index a token
+#: nothing in the anchor set can name.  Hyphen is a separator, not part of a
+#: token - see `unit_table`.
 LATIN_RE = re.compile(r"[A-Za-z][A-Za-z'-]*")
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z']*")
 
@@ -1835,6 +1865,13 @@ def build(log=print) -> dict:
                        and r["split"] == "held_out")
     baseline_aer = next(r["aer"] for r in ev
                         if r["document"] == "ALL" and r["system"] == "proportional")
+    # The comparison that means anything is same-split, so the baseline is also
+    # read off the held-out half.  Reporting the DP held-out figure against the
+    # baseline's all-twelve-document figure would flatter the aligner.
+    baseline_heldout_aer = next(r["aer"] for r in ev
+                                if r["document"] == "SUBTOTAL"
+                                and r["system"] == "proportional"
+                                and r["split"] == "held_out")
 
     # --- 9. reconciliation / diagnostics / summary -------------------------
     n_pages = len(corpus.page_starts)
@@ -1882,6 +1919,7 @@ def build(log=print) -> dict:
         {"diag": "aligner_aer_builtin_gold", "value": overall_aer},
         {"diag": "aligner_aer_held_out_half", "value": heldout_aer},
         {"diag": "baseline_aer_proportional", "value": baseline_aer},
+        {"diag": "baseline_aer_held_out_half", "value": baseline_heldout_aer},
         {"diag": "gold_pairs", "value": len(GOLD_SENTENCES)},
         {"diag": "author_claims_checked", "value": len(checks)},
     ]
@@ -1891,6 +1929,7 @@ def build(log=print) -> dict:
         "schema": SCHEMA,
         "verdict": "partial_oracle",
         "parallel_text_obtained": False,
+        "corpus_operator_tokens": len(corpus.ops),
         "skeleton_localized_quotations": sum(
             1 for a in alignments if a.evidence() == "unique_skeleton"),
         "quotations_uniquely_located": n_located,
@@ -1904,6 +1943,7 @@ def build(log=print) -> dict:
         "aligner_aer_builtin_gold": overall_aer,
         "aligner_aer_held_out_half": heldout_aer,
         "baseline_aer_proportional": baseline_aer,
+        "baseline_aer_held_out_half": baseline_heldout_aer,
         "author_claims_corrobated": sum(1 for c in checks if c["verdict"] == "corroborated"),
         "author_claims_absent": sum(1 for c in checks if c["verdict"].startswith("absent")),
         "author_claims_single": sum(1 for c in checks if c["verdict"] == "single_occurrence"),
@@ -1961,11 +2001,12 @@ def availability_report(ledger: list[dict], summary: dict) -> str:
         "operator skeleton *alone*, with no lexical anchor at all, and both "
         "come out at **100% positional operator retention** against the "
         "English: 16/16 operators for one, 12/12 for the other.  RUQ01's "
-        "16-operator sequence occurs exactly once in the corpus's 10,145 "
-        "operator tokens; RUQ02's 12-operator sequence occurs twice, and the "
-        "two sites are byte-identical (pp. 5 and 221) - which is a finding "
-        "about the book, not about the aligner.  That is the Rosetta stone "
-        "this corpus actually has.",
+        "16-operator sequence occurs exactly once in the corpus's "
+        f"{summary['corpus_operator_tokens']:,} operator tokens; RUQ02's "
+        "12-operator sequence occurs twice, and the two sites are "
+        "byte-identical (pp. 5 and 221) - which is a finding about the book, "
+        "not about the aligner.  That is the Rosetta stone this corpus "
+        "actually has.",
         "",
         "## The numbers",
         "",
@@ -1982,10 +2023,23 @@ def availability_report(ledger: list[dict], summary: dict) -> str:
         f"{summary['bilingual_lexicon_entries']} "
         f"({summary['bilingual_lexicon_attested']}) |",
         f"| aligner AER, held-out half | {summary['aligner_aer_held_out_half']} |",
-        f"| length-only baseline AER | {summary['baseline_aer_proportional']} |",
+        f"| length-only baseline AER, same held-out half | "
+        f"{summary['baseline_aer_held_out_half']} |",
+        f"| aligner / baseline AER, whole built-in gold | "
+        f"{summary['aligner_aer_builtin_gold']} / "
+        f"{summary['baseline_aer_proportional']} |",
         f"| author claims corroborated / single / absent | "
         f"{summary['author_claims_corrobated']} / {summary['author_claims_single']} / "
         f"{summary['author_claims_absent']} |",
+        "",
+        "AER is `alignment_error_rate` in `work/translation_oracle.py`: the "
+        "Gale & Church / Levow standard, counting deletions and insertions of "
+        "null-collapsed links over the gold links of the same split.  It is a "
+        "rate of errors per gold link, not a proportion of a fixed set, so it "
+        "is **not bounded above by 1** - the proportional baseline sits near 2 "
+        "because it proposes about as many wrong links as the gold has links.  "
+        "The comparison that carries meaning is the gap between the two rows, "
+        "not either value on its own.",
         "",
         "## Ledger",
         "",
@@ -2092,10 +2146,14 @@ def alignment_report(alignments, inv_rows, lexicon, checks) -> str:
             en = _cell(" || ".join(aln.en_units[i].text for i in link.en))
             lines.append(f"| {k} | {link.kind} | {ru} | {en} |")
         lines.append("")
+    corpus_ops = sorted({r["corpus_operator_tokens"] for r in inv_rows})
+    ops_label = ("/".join(f"{n:,}-token" for n in corpus_ops) + " "
+                 if corpus_ops else "")
     lines += [
         "## Operator-channel invariance",
         "",
-        "| quote | page | EN ops | RU ops | positional retention | exact windows in 11,000 ops |",
+        f"| quote | page | EN ops | RU ops | positional retention | exact "
+        f"windows in the corpus's {ops_label}operator stream |",
         "|---|---|---|---|---|---|",
     ]
     for row in inv_rows:
