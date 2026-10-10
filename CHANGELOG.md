@@ -34,6 +34,25 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 - Interlinear gloss + termbase (`termbase_sample.tsv`, `gloss_passages.md`, `gloss_tokens.tsv`) —
   49 terms with computed evidence and a confidence level, and three page-cited passages glossed
   token by token with the #13 v3/v4 operator-normalized renderings.
+- Interlinear edition generator (#62) — `analysis/interlinear/` + `work/interlinear_edition.py` +
+  `work/test_interlinear_edition.py` (49 tests). The plan's E8.2 three-line rendering — original
+  clause | operator-normalized (silence removed) | plain-English gloss — for all 5,614 #33 clauses
+  on all 225 pages. Line 2 is #13's v4 transform (operators → `.`, the variant #50 scored closest
+  to the underlying system) rendered with #56's `render_variant` semantics, pinned by two build-time
+  invariants: the token-assembled rendering equals the substring-deleted rendering for every clause,
+  and every kept token's span reads back as its surface. Line 3 substitutes a plain reading only
+  where the surface is not ordinary English, so the book's English layer glosses to itself (99.5%
+  identity) and the interpretation concentrates at the non-English sites: 49 of the 51 #19
+  `true_coinage` types are read from the #26 KWIC contexts, #19 morphology and #30 roles under #56's
+  confidence scheme; named constructs keep their surface (names are not translated) with the #30
+  role quoted; #19's `ocr_error` class is kept as printed, never auto-corrected; the two opaque
+  coinages (`omanko`, `laple`) are marked `‹…›` on the line and itemized in `residue.tsv as reading
+  leads for #63. No LLM and no external corpus. Reconciles with #33 exactly on the word layer
+  (76,897 = 76,897 `n_words_clean`), with #17 on the token stream (90,220 / 11,000 operators) and
+  with #14 on the slash roles (952/540); the 141-token gap to #33's event-counted `n_tokens` is
+  disclosed as #14's synthesized marker events, and the 5,914 tokens in no #33 clause are counted
+  rather than dropped. Deterministic: a rebuild is byte-identical except the report's generated
+  stamp.
 
 ## [0.1.0] — 2026-10-06
 
