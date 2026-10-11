@@ -150,6 +150,10 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- E3 — Distributional semantics & semantic network (#23)
+- E1 — Operator grammar & the symbolic machine (#9)
+- E0 — Corpus ingestion & OCR stabilization (#2)
+- Obtain and align translations (interpretive oracle) (#58)
 - Narrative reconstruction (entity/event tracking) (#66)
 - Interlinear edition generator (#62)
 - Termbase and consistency enforcement (#65)
