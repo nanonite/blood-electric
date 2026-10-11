@@ -6,6 +6,44 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- LLM glossing pipeline (five prompt strategies), `analysis/glossing/` (#63) — the first LLM
+  output in the workspace, and the first thing built so it can be audited rather than believed.
+  Five strategies — `literal_operator` (operator channel preserved verbatim), `register_paraphrase`,
+  `scene_summary` (operators dropped by instruction), `plain_english` (operators verbalised),
+  `entity_consistent` (#30 names and roles held) — gloss a **stratified sample of 5 of #33's 5,614
+  clauses** (residue → operator-dense → entity-named → quoting-frame → plain-control, one per
+  stratum, drawn by a published rule and published in `sample.tsv`, not chosen for readability;
+  the tie-break is on the clause id **as text**, so `1003` is drawn before `101` and the sample is
+  *not* the numerically earliest clause of each stratum — disclosed in the report and pinned in the
+  suite, because re-drawing it would move every prompt and need a fresh capture), producing 25
+  glosses. Every prompt carries the clause's own operators with their #12/#14 readings
+  ("a prompt never shows an operator the clause does not contain", so a "preserved" channel can be
+  checked rather than trusted), the #30 rows for the entities it names, its #62 unresolved surfaces
+  and its #19 `ocr_error` artefacts, plus one standing constraint block identical across all five
+  strategies. **The load-bearing output is the verdict layer, not the glosses:** four deterministic
+  checks — `operator_fidelity` (the operator subsequence, read off #17's stream rather than a regex
+  over prose), `entity_fidelity` (both a dropped #30 name and an invented proper noun), `residue_discipline`
+  (a marked-unresolved surface smoothed into an ordinary word), `frame_preservation` (the `<< >>`
+  quoting frame) — score each gloss against its own strategy's contract, and no check calls the model,
+  so the model cannot grade itself. **Verdicts: 15 pass / 10 fail; per check, `operator_fidelity` 17/25
+  (68%), `entity_fidelity` 23/25 (92%), `frame_preservation` 6/6, `residue_discipline` 5/5; mean
+  cross-strategy Jaccard agreement 0.364 (min 0.229, no unanimous clause).** The mode is pinned and
+  offline: `PINS` is one dated capture run (2026-10-10, `opencode run --model
+  opencode/space-bunny-free`), each pin keyed by the sha256 of the prompt it answered, so a change in
+  the constraint assembly fails the build instead of silently reusing a stale response; `--live`
+  re-runs the backend and prints a diff against the pins rather than rewriting them, because the same
+  prompt was run three times and returned three different glosses — a number that moves with the
+  sampler cannot be regression-tested. Every prompt is published in `prompts.tsv`. A build-time defect
+  found and fixed here: the summary counted a check's non-applicable rows as passes, so
+  `residue_discipline` read 100% over 25 glosses when it judged 5 (and disagreed with the report's own
+  table); the denominators are now published per check in `check_counts` — and, in the same class, the
+  per-gloss columns counted non-applicable rows as passes too, publishing "3 checks passed of 2
+  applicable" on 20 of the 25 rows and naming `residue_discipline` as passed for clauses carrying no
+  residue, so `n_passed <= n_applicable` is now a suite-tested invariant. New:
+  `work/glossing_pipeline.py` + `work/test_glossing_pipeline.py` (95 tests, including a
+  suite-wide assertion that the operator scanner agrees with #17 on every clause, that it re-derives
+  #17's 5,227 in-clause / 11,000 total operator tokens, and that the pinned build is byte-identical
+  on rebuild).
 - Translations as an interpretive oracle, `analysis/translation_oracle/` (#58) — L7's
   "interpretive oracle", run as both a **documented negative result** and a working alignment.
   *Negative:* the A. Skobin Russian edition could not be obtained lawfully, and that is the
