@@ -23,6 +23,7 @@ import re
 import sys
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -459,6 +460,157 @@ class TestOperatorInvariance(unittest.TestCase):
             self.assertEqual(exact["n_ru_ops"], len(skeleton), qid)
 
 
+class TestQuotationProvenance(unittest.TestCase):
+    """Each quotation is pinned to the review block it was transcribed from.
+
+    These are the checks the earlier free-text attribution could not survive.
+    Six of the twelve quotations were credited to Reza Negarestani, whose name
+    does appear on the FantLab work page but only in the «Рецензии»
+    bibliography block, as the author of an *external review of the book*
+    (work1915318).  He wrote none of them.  Since the whole licensing position
+    rests on these being short *attributed* quotations of a copyrighted
+    translation, a wrong attribution is not a cosmetic defect, so it is pinned
+    from two directions: the reviewer of each quotation is asserted here by
+    name, and the review table the attribution is derived from is checked
+    against the page's own ``schema.org/Review`` markup.
+    """
+
+    #: the review block each quotation was transcribed from, by reviewer.
+    EXPECTED: ClassVar[dict[str, str]] = {
+        "RUQ01": "josser", "RUQ02": "ekidonaa", "RUQ03": "ekidonaa",
+        "RUQ04": "ekidonaa", "RUQ05": "Stirliz77", "RUQ06": "ekidonaa",
+        "RUQ07": "ekidonaa", "RUQ08": "Stirliz77", "RUQ09": "Stirliz77",
+        "RUQ10": "Stirliz77", "RUQ11": "ekidonaa", "RUQ12": "ekidonaa",
+    }
+    #: the six rows the reviewer found misattributed, with their true author.
+    CORRECTED: ClassVar[dict[str, str]] = {
+        "RUQ05": "Stirliz77", "RUQ06": "ekidonaa", "RUQ08": "Stirliz77",
+        "RUQ09": "Stirliz77", "RUQ10": "Stirliz77", "RUQ12": "ekidonaa",
+    }
+    EXPECTED_DATES: ClassVar[dict[str, str]] = {
+        "josser": "10 May 2011",
+        "Stirliz77": "9 Oct 2020",
+        "ekidonaa": "12 Feb 2025",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.quotes = list(to.RU_QUOTATIONS) + [to.DIVERGENT_QUOTE]
+
+    def test_every_quotation_names_a_pinned_review(self):
+        for q in self.quotes:
+            self.assertIn(q["review"], to.REVIEW_BY_ID,
+                          f"{q['id']} names no pinned review block")
+
+    def test_each_quotation_is_attributed_to_its_actual_reviewer(self):
+        """The pin the correction exists to enforce."""
+        for q in self.quotes:
+            self.assertEqual(to.REVIEW_BY_ID[q["review"]]["author"],
+                             self.EXPECTED[q["id"]], q["id"])
+
+    def test_the_six_corrected_rows_no_longer_credit_negarestani(self):
+        """The specific defect: six rows credited a man who wrote none of it."""
+        for qid, author in self.CORRECTED.items():
+            rev = next(q for q in self.quotes if q["id"] == qid)
+            self.assertNotIn("Negarestani", to.attributor_of(rev["review"]), qid)
+            self.assertTrue(to.attributor_of(rev["review"]).startswith(author), qid)
+
+    def test_attributor_is_derived_not_stored(self):
+        """No quotation carries a hand-typed attribution any more.
+
+        The defect was possible only because the author was free text on each
+        row; the field is now computed from the review table, so it cannot say
+        something the table does not.
+        """
+        for q in self.quotes:
+            self.assertNotIn("attributor", q, q["id"])
+
+    def test_attributor_string_names_the_reviewer_and_the_date(self):
+        for q in self.quotes:
+            rev = to.REVIEW_BY_ID[q["review"]]
+            att = to.attributor_of(q["review"])
+            self.assertTrue(att.startswith(rev["author"] + " ("), q["id"])
+            self.assertIn("FantLab review", att, q["id"])
+            self.assertIn(self.EXPECTED_DATES[rev["author"]], att, q["id"])
+
+    def test_only_the_reviewers_who_wrote_them_are_attributed(self):
+        """Exactly three readers wrote all twelve quotations."""
+        self.assertEqual({to.REVIEW_BY_ID[q["review"]]["author"]
+                          for q in self.quotes},
+                         {"josser", "Stirliz77", "ekidonaa"})
+
+    def test_each_review_pin_is_internally_consistent(self):
+        for rev in to.FANTLAB_REVIEWS:
+            self.assertRegex(rev["review"], r"^review\d+$", rev["review"])
+            self.assertRegex(rev["body_sha256"], r"^[0-9a-f]{64}$", rev["review"])
+            self.assertGreater(rev["n_chars"], 0, rev["review"])
+            self.assertRegex(rev["date_published"], r"^\d{4}-\d\d-\d\d ", rev["review"])
+
+    def test_review_keys_are_unique(self):
+        keys = [r["review"] for r in to.FANTLAB_REVIEWS]
+        self.assertEqual(len(keys), len(set(keys)))
+
+    def test_permalink_resolves_to_the_page_anchor(self):
+        """The page's anchor is ``response<N>``; the key is ``review<N>``."""
+        for rev in to.FANTLAB_REVIEWS:
+            link = to.review_permalink(rev["review"])
+            self.assertTrue(link.startswith(to.FANTLAB_REVIEWS_URL + "#response"),
+                            rev["review"])
+            self.assertEqual(link.rsplit("#response", 1)[1],
+                             rev["review"].removeprefix("review"))
+
+    def test_negarestani_is_not_a_source_of_any_quotation(self):
+        """He authored a review *of* the book; he is not a reviewer *on* it."""
+        for rev in to.FANTLAB_REVIEWS:
+            self.assertNotIn("Negarestani", rev["author"], rev["review"])
+            self.assertNotIn("Негарестани", rev["author"], rev["review"])
+
+    def test_page_parser_reads_identity_from_the_page_not_from_the_pins(self):
+        """A review block's author/date come from the page's own markup.
+
+        Built from a miniature of the page so the parser is exercised without
+        a network fetch: author, account, `datePublished` and the
+        `#responseNNNNNN` anchor are read out of the block, not supplied.
+        """
+        page = (
+            '<div class="response-item" itemprop="review" itemscope>'
+            '<p class="response-autor-info">'
+            '<a name=response4242></a>'
+            '<b itemprop="author"><a href=\'/user777\'>someone</a></b>, '
+            '<span itemprop="datePublished" content="2019-03-04 05:06:07">'
+            '4 марта 2019 г.</span></p>'
+            '<div class="response-body-home" itemprop="reviewBody">'
+            '<p>body text</p></div></div>')
+        blocks = to.parse_review_blocks(page)
+        self.assertEqual(list(blocks), ["review4242"])
+        got = blocks["review4242"]
+        self.assertEqual(got["author"], "someone")
+        self.assertEqual(got["account"], 777)
+        self.assertEqual(got["date_published"], "2019-03-04 05:06:07")
+        self.assertEqual(got["_text"], "body text")
+
+    def test_provenance_check_catches_a_misattributed_quotation(self):
+        """The check must fire, not merely exist.
+
+        Feeding the provenance scan a page whose block holds a *different*
+        quotation has to report the row as found somewhere other than the
+        review it is attributed to.  A test that cannot fail is not a pin.
+        """
+        q = to.RU_QUOTATIONS[0]
+        blocks = {q["review"]: {"_text": "совсем другой текст"}}
+        row = next(r for r in to.check_quotation_provenance(blocks)
+                   if r["id"] == q["id"])
+        self.assertEqual(row["found_in"], [])
+        self.assertNotEqual(row["found_in"], [row["review"]])
+
+    def test_provenance_check_confirms_a_correctly_attributed_quotation(self):
+        q = next(x for x in to.RU_QUOTATIONS if x["id"] == "RUQ05")
+        blocks = {q["review"]: {"_text": "название главы " + q["ru"]}}
+        row = next(r for r in to.check_quotation_provenance(blocks)
+                   if r["id"] == "RUQ05")
+        self.assertEqual(row["found_in"], [row["review"]])
+
+
 @unittest.skipUnless(ART.exists(), "artifacts absent; run work/translation_oracle.py")
 class TestArtifacts(unittest.TestCase):
     @classmethod
@@ -474,11 +626,20 @@ class TestArtifacts(unittest.TestCase):
 
     def test_every_pinned_artifact_exists(self):
         for name in ("sources.tsv", "availability_report.md", "ru_quotations.tsv",
+                     "fantlab_reviews.tsv",
                      "author_paratext.tsv", "alignment.tsv", "alignment_report.md",
                      "operator_invariance.tsv", "bilingual_lexicon.tsv",
                      "oracle_checks.tsv", "aligner_eval.tsv", "diagnostics.tsv",
                      "reconciliation.tsv", "summary.json"):
             self.assertTrue((ART / name).exists(), name)
+
+    def test_alignment_report_attribution_matches_the_review_block(self):
+        """The report is the reader-facing copy, so it must not drift either."""
+        text = (ART / "alignment_report.md").read_text(encoding="utf-8")
+        for q in list(to.RU_QUOTATIONS) + [to.DIVERGENT_QUOTE]:
+            line = (f"* attributed to: {to.attributor_of(q['review'])} "
+                    f"({to.review_permalink(q['review'])})")
+            self.assertIn(line, text, q["id"])
 
     def test_ledger_refuses_every_mirror(self):
         for row in self.sources:
@@ -498,6 +659,49 @@ class TestArtifacts(unittest.TestCase):
             self.assertTrue(row["attributor"].strip(), row["id"])
             self.assertTrue(row["note"].strip(), row["id"])
             self.assertIn("FantLab", row["attributor"])
+
+    def test_every_quotation_carries_its_review_block(self):
+        """`ru_quotations.tsv` names the source block, not just its author.
+
+        An author string can be right by luck; the block it came from is what
+        a reader can go and check.
+        """
+        for row in self.quotes:
+            self.assertIn(row["review"], to.REVIEW_BY_ID, row["id"])
+            self.assertEqual(row["attributor"],
+                             to.attributor_of(row["review"]), row["id"])
+
+    def test_artifact_agrees_with_the_pinned_reviewer_of_each_quotation(self):
+        expected = {q["id"]: to.REVIEW_BY_ID[q["review"]]["author"]
+                    for q in list(to.RU_QUOTATIONS) + [to.DIVERGENT_QUOTE]}
+        for row in self.quotes:
+            self.assertTrue(row["attributor"].startswith(expected[row["id"]]),
+                            f"{row['id']}: {row['attributor']}")
+
+    def test_no_artifact_row_credits_negarestani(self):
+        for row in self.quotes:
+            self.assertNotIn("Negarestani", row["attributor"], row["id"])
+
+    def test_review_ledger_covers_every_quotation(self):
+        rows = read_tsv(ART / "fantlab_reviews.tsv")
+        ledger = {r["review"]: r for r in rows}
+        for row in self.quotes:
+            self.assertIn(row["review"], ledger, row["id"])
+            self.assertEqual(ledger[row["review"]]["attributor"],
+                             row["attributor"], row["id"])
+        total = sum(int(r["n_quotations"]) for r in rows)
+        self.assertEqual(total, len(self.quotes))
+
+    def test_review_ledger_permutes_to_a_stable_permalink(self):
+        for row in read_tsv(ART / "fantlab_reviews.tsv"):
+            self.assertTrue(row["permalink"].startswith(
+                to.FANTLAB_REVIEWS_URL + "#response"), row["review"])
+
+    def test_diagnostics_report_the_attribution_coverage(self):
+        self.assertEqual(self.diag["fantlab_review_blocks"],
+                         str(len(to.FANTLAB_REVIEWS)))
+        self.assertEqual(self.diag["quotations_attributed_to_a_pinned_review"],
+                         self.diag["quotations_pinned"])
 
     def test_most_quotations_resolve(self):
         resolved = [r for r in self.quotes if r["evidence"] != "ambiguous"]

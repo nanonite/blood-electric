@@ -87,6 +87,28 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   rather than dropped. Deterministic: a rebuild is byte-identical except the report's generated
   stamp.
 
+### Fixed
+- Quotation provenance in the translation oracle (#58) — **six of the twelve Russian
+  quotations were credited to a man who did not write them.** RUQ05, RUQ06, RUQ08, RUQ09, RUQ10 and
+  RUQ12 were attributed to "Reza Negarestani (FantLab review, 2011)". His name does appear on the
+  FantLab work page, but in the «Рецензии» bibliography block, as the author of an *external review
+  of the book* («Пишущие машины из далёких мест», work1915318) — a page that carries no review body
+  and none of the six strings. The quotations were in fact transcribed from three reader reviews:
+  **Stirliz77, 9 Oct 2020** (`#response409177`) for RUQ05/08/09/10, and **ekidonaa, 12 Feb 2025**
+  (`#response498807`) for RUQ06/12. This was not cosmetic: these rows are short quotations of a
+  *copyrighted* translation, so the attribution is precisely what makes them lawfully quotable, and
+  the module's whole ingestion position rests on it. Corrected by removing the possibility rather
+  than the strings — each quotation now names a `review` block and its attribution is **derived**
+  from a pinned review table (`fantlab_reviews.tsv`: author, account, `datePublished`, the
+  `#responseNNNNNN` permalink and a SHA-256 over the block's tag-stripped body), so a quotation
+  cannot claim an author its block does not have. New `fantlab_reviews.tsv`; `ru_quotations.tsv`
+  gains a `review` column; the alignment report prints the reviewer *and* the permalink and now
+  explains the attribution rule. The three block fingerprints were verified identical across a
+  cached fetch and an independent live re-fetch, and `--verify-reviews` re-checks all twelve
+  quotations against the live page (all 12 OK). Tests 80 → **100**, including a
+  planted-misattribution test that proves the provenance scan fires; re-injecting the original
+  defect fails the suite in six independent places. Build remains byte-identical on rebuild.
+
 ## [0.1.0] — 2026-10-06
 
 ### Changed

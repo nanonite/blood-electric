@@ -51,6 +51,7 @@ Artifacts written under ``analysis/translation_oracle/``::
     sources.tsv              acquisition ledger (one row per candidate source)
     availability_report.md   the narrative result: obtained / refused / searched
     ru_quotations.tsv        the pinned target-language quotations + their anchors
+    fantlab_reviews.tsv      the reader reviews the quotations were transcribed from
     author_paratext.tsv      pinned author interview Q/A (research quotations)
     alignment.tsv            the alignment artifact: RU unit <-> EN unit
     alignment_report.md      per-quotation alignment detail
@@ -64,17 +65,21 @@ Reproduce::
 
     python work/translation_oracle.py               # offline, from pinned data
     python work/translation_oracle.py --probe       # re-run the HTTP probes
+    python work/translation_oracle.py --verify-reviews   # re-check attribution live
     python work/test_translation_oracle.py
 
 Determinism: the build is byte-identical on a rerun.  The probe results are a
 *pinned record* of the acquisition (``PROBE_DATE``), not a build-time stamp, so
 nothing in the artifact moves with the clock; ``--probe`` re-runs them live and
-prints a diff against the pins.
+prints a diff against the pins.  ``--verify-reviews`` re-fetches the work page
+and confirms each quotation still occurs in the review it is attributed to.
 """
 from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
+import html
 import json
 import math
 import random
@@ -365,19 +370,23 @@ def verdict(source: Source) -> str:
 
 
 def probe(url: str, method: str = "GET", timeout: int = 45) -> dict:
-    """One HTTP probe.  Never raises; returns the observed evidence."""
+    """One HTTP probe.  Never raises; returns the observed evidence.
+
+    ``text`` is the decoded body when one was fetched, so callers that need
+    to read a page (the review-attribution check) do not fetch it twice.
+    """
     req = urllib.request.Request(url, method=method, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             body = resp.read() if method == "GET" else b""
-            import hashlib
             return {"status": resp.status, "final": resp.geturl(), "bytes": len(body),
-                    "sha256": hashlib.sha256(body).hexdigest() if body else ""}
+                    "sha256": hashlib.sha256(body).hexdigest() if body else "",
+                    "text": body.decode("utf-8", "replace") if body else ""}
     except urllib.error.HTTPError as exc:
         return {"status": exc.code, "final": url, "bytes": 0, "sha256": "",
-                "error": f"HTTP Error {exc.code}: {exc.reason}"}
+                "text": "", "error": f"HTTP Error {exc.code}: {exc.reason}"}
     except Exception as exc:  # noqa: BLE001 - a probe must never break a build
-        return {"status": 0, "final": url, "bytes": 0, "sha256": "",
+        return {"status": 0, "final": url, "bytes": 0, "sha256": "", "text": "",
                 "error": str(exc)[:120]}
 
 
@@ -437,6 +446,178 @@ def ledger_rows() -> list[dict]:
 FANTLAB_REVIEWS_URL = "https://fantlab.ru/work253074"
 FANTLAB_SHA256 = PINS["skobin_fantlab_work"]["sha256"]
 
+
+# ---------------------------------------------------------------------------
+# 2a. the review blocks the quotations were transcribed from
+# ---------------------------------------------------------------------------
+# Every quotation below carries a ``review`` key naming a row of this table,
+# and its ``attributor`` string is *derived* from that row by
+# :func:`attributor_of`.  Nothing types a reviewer by hand.
+#
+# That indirection is the whole point.  An earlier revision stored the
+# attribution as free text on each quotation, and six of the twelve rows were
+# wrong: they read "Reza Negarestani (FantLab review, 2011)", a name that does
+# appear on the work page but in a completely different role.  It is the author
+# of an *external review of the book* («Пишущие машины из далёких мест»,
+# work1915318), listed in the page's «Рецензии» bibliography block - not a
+# reader-review author at all, and that page carries no review body.  Six
+# quotations were therefore credited to a man who did not write them, which is
+# precisely the failure the licensing position cannot afford: these rows are
+# short quotations of a copyrighted translation, so the attribution is the
+# thing that makes them quotable.
+#
+# The three rows below are the review blocks the twelve quotations actually
+# come from, pinned as (review id, author, account, datePublished).  They are
+# read off the page's ``schema.org/Review`` markup, one ``<div
+# class="response-item" itemprop="review">`` per row, and each carries the
+# ``#responseNNNNNN`` anchor that permalinks it.  ``body_sha256`` is over the
+# block's tag-stripped body, and ``n_chars`` its length: together they pin
+# *which* text was transcribed, so a later revision of a review cannot silently
+# become the source of record.  Both were verified identical across a cached
+# fetch and an independent live re-fetch of the work page.
+FANTLAB_REVIEWS: tuple[dict, ...] = (
+    {"review": "review174357", "author": "josser", "account": 55558,
+     "date_published": "2011-05-10 23:49:02", "n_chars": 1722,
+     "body_sha256": "98fd7c017220fc2aa4539e7e4cf790781a9cf393d0127ed3a215174d7d6cf224"},
+    {"review": "review409177", "author": "Stirliz77", "account": 28338,
+     "date_published": "2020-10-09 01:35:27", "n_chars": 9838,
+     "body_sha256": "ad580c71b209b8569a6fd3104d8b2938de32999980805a66f21cbfab1538af51"},
+    {"review": "review498807", "author": "ekidonaa", "account": 222907,
+     "date_published": "2025-02-12 07:17:33", "n_chars": 12307,
+     "body_sha256": "6acc2537ff0b7f6a2c3cece7f8e6417a1ce2b1608c2e876523bd7be7a36cfa18"},
+)
+
+REVIEW_BY_ID: dict[str, dict] = {r["review"]: r for r in FANTLAB_REVIEWS}
+
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def review_permalink(review: str) -> str:
+    """The stable ``#responseNNNNNN`` permalink for a review block.
+
+    ``review<N>`` is this module's key for a block; the page's own anchor is
+    ``response<N>``, which is what the link resolves to.
+    """
+    return f"{FANTLAB_REVIEWS_URL}#{review.replace('review', 'response', 1)}"
+
+
+def attributor_of(review: str) -> str:
+    """``"<author> (FantLab review, <D Mon YYYY>)"`` for a review id.
+
+    Derived from :data:`FANTLAB_REVIEWS` rather than typed per quotation, so a
+    quotation cannot claim an author its review block does not have.
+    """
+    rev = REVIEW_BY_ID[review]
+    year, month, day = rev["date_published"][:10].split("-")
+    return (f"{rev['author']} (FantLab review, "
+            f"{int(day)} {_MONTHS[int(month) - 1]} {year})")
+
+
+# --- parsing a live work page back into review blocks ------------------------
+#: One FantLab reader review, as ``schema.org/Review`` in the page's markup.
+#: The three identity fields are matched independently rather than as one
+#: ordered pattern: their order inside a block is presentational, and a
+#: positional regex silently stopped matching when FantLab reordered them.
+_RE_AUTHOR_RE = re.compile(r'itemprop="author"><a href=\'/user(?P<account>\d+)\'>'
+                           r'(?P<author>[^<]+)</a>')
+_RE_DATE_RE = re.compile(r'itemprop="datePublished" content="(?P<date>[^"]+)"')
+_RE_RESPONSE_RE = re.compile(r'name=response(?P<response>\d+)')
+_BODY_RE = re.compile(r'itemprop="reviewBody">(?P<body>.*)\Z', re.S)
+_BLOCK_RE = re.compile(r'<div class="response-item" itemprop="review"')
+
+
+def review_body_text(raw_html: str) -> str:
+    """Tag-strip one review body down to the text a fingerprint covers."""
+    body = _BODY_RE.search(raw_html).group("body")
+    body = re.sub(r"<(script|style)\b.*?</\1>", "", body, flags=re.S)
+    body = re.sub(r"<[^>]+>", " ", body)
+    body = html.unescape(body)
+    body = re.sub(r"[ \t ]+", " ", body)
+    return re.sub(r"\s*\n\s*", "\n", body).strip()
+
+
+def parse_review_blocks(page_html: str) -> dict[str, dict]:
+    """Map ``review<id>`` -> block metadata for every review on a work page.
+
+    Reads the page's own ``schema.org/Review`` markup, so author and date come
+    from the source rather than from anything transcribed here.
+    """
+    cuts = [m.start() for m in _BLOCK_RE.finditer(page_html)]
+    blocks: dict[str, dict] = {}
+    for i, start in enumerate(cuts):
+        end = cuts[i + 1] if i + 1 < len(cuts) else len(page_html)
+        raw = page_html[start:end]
+        author, date, resp = (_RE_AUTHOR_RE.search(raw),
+                              _RE_DATE_RE.search(raw),
+                              _RE_RESPONSE_RE.search(raw))
+        if not (author and date and resp):
+            continue
+        text = review_body_text(raw)
+        key = f"review{resp.group('response')}"
+        blocks[key] = {
+            "review": key,
+            "author": author.group("author").strip(),
+            "account": int(author.group("account")),
+            "date_published": date.group("date"),
+            "body_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "n_chars": len(text),
+            "_text": text,
+        }
+    return blocks
+
+
+def verify_review_attribution(log=print, blocks: dict[str, dict] | None = None) -> list[dict]:
+    """Check every pinned review block against the live page.
+
+    This is the check the earlier free-text attribution could not survive: each
+    block's author and ``datePublished`` are read back off the page and
+    compared with the pins, so a review edited or re-attributed upstream is
+    reported rather than silently inherited.  Pass ``blocks`` to reuse a page
+    already fetched rather than requesting it twice.
+    """
+    if blocks is None:
+        got = probe(FANTLAB_REVIEWS_URL)
+        if got["status"] != 200:
+            log(f"[translation_oracle] review check skipped: work page "
+                f"returned {got['status']}")
+            return [{"review": r["review"], "verdict": "skipped"}
+                    for r in FANTLAB_REVIEWS]
+        blocks = parse_review_blocks(got["text"])
+    rows = []
+    for rev in FANTLAB_REVIEWS:
+        live = blocks.get(rev["review"])
+        if live is None:
+            rows.append({"review": rev["review"], "verdict": "missing"})
+            log(f"[translation_oracle] review {rev['review']} MISSING from page")
+            continue
+        same = (live["author"] == rev["author"]
+                and live["date_published"] == rev["date_published"])
+        rows.append({"review": rev["review"], "verdict": "ok" if same else "changed",
+                     "pinned_author": rev["author"],
+                     "live_author": live["author"],
+                     "pinned_sha256": rev["body_sha256"],
+                     "live_sha256": live["body_sha256"]})
+        log(f"[translation_oracle] review {rev['review']:14s} "
+            f"{live['author']:12s} {live['date_published'][:10]} "
+            f"{'OK' if same else 'CHANGED'}")
+    return rows
+
+
+def check_quotation_provenance(blocks: dict[str, dict]) -> list[dict]:
+    """Which review block each quotation's text actually occurs in.
+
+    Returns one row per quotation with the blocks that contain it, so an
+    attribution can be checked against the source rather than trusted.
+    """
+    quotes = list(RU_QUOTATIONS) + [DIVERGENT_QUOTE]
+    out = []
+    for q in quotes:
+        hits = sorted(key for key, blk in blocks.items()
+                      if q["ru"].rstrip("»") in blk.get("_text", ""))
+        out.append({"id": q["id"], "review": q["review"], "found_in": hits})
+    return out
+
 RUQ1 = ("‹‹ДНК=канал геноцида любовных кукол, которые взрываются в её серебряное "
         "кольцо::паразитный дрон кибер природы инокулирует в чудовище нарко эмбриона, "
         "отпустившего мех – я был изнасилован до сознания внутренних органов трупного "
@@ -453,31 +634,32 @@ RUQ2 = ("«Коэффициент жестокости пса, источающ�
         "которых=ТВ изолированы, дышат и выдирают полосы мозга шума бойроида//"
         "‹‹в режим разрезки масс плоти, что слабеют››»")
 
-#: `(id, attributor, date, ru_quote, kind, anchors)` - ``kind`` is
-#: ``skeleton`` (located by the operator channel alone) or ``anchor``
-#: (located by bilingual token anchors).  ``anchors`` is RU -> EN and is a
-#: *prior read off the target text*, not a result; the build reports how many
-#: of the anchors the corpus independently corroborates and whether the match
-#: is unique.
+#: Each row names the review block it was transcribed from in ``review``; the
+#: ``attributor`` string is derived from that by :func:`attributor_of`, so the
+#: two cannot drift apart.  ``kind`` is ``skeleton`` (located by the operator
+#: channel alone) or ``anchor`` (located by bilingual token anchors).
+#: ``anchors`` is RU -> EN and is a *prior read off the target text*, not a
+#: result; the build reports how many of the anchors the corpus independently
+#: corroborates and whether the match is unique.
 RU_QUOTATIONS: tuple[dict, ...] = (
-    {"id": "RUQ01", "attributor": "josser (FantLab review, 10 May 2011)",
+    {"id": "RUQ01", "review": "review174357",
      "kind": "skeleton", "anchors": {},
      "ru": RUQ1,
      "note": "16-operator span; located by operator skeleton alone."},
-    {"id": "RUQ02", "attributor": "ekidonaa (FantLab review, 12 Feb 2025)",
+    {"id": "RUQ02", "review": "review498807",
      "kind": "skeleton", "anchors": {},
      "ru": RUQ2,
      "note": "12-operator span; located by operator skeleton alone.  The "
              "reviewer had to consult the translator's own preface to read "
              "it, which is itself evidence that the symbol channel survives "
              "translation."},
-    {"id": "RUQ03", "attributor": "ekidonaa (FantLab review, 12 Feb 2025)",
+    {"id": "RUQ03", "review": "review498807",
      "kind": "anchor",
      "anchors": {"вычисляю": "compute", "взрываюсь": "explode",
                  "планета": "planet", "эродирует": "erodes"},
      "ru": "«Я вычисляю и взрываюсь::планета эродирует»",
      "note": "Retains the `::` field split."},
-    {"id": "RUQ04", "attributor": "ekidonaa (FantLab review, 12 Feb 2025)",
+    {"id": "RUQ04", "review": "review498807",
      "kind": "anchor",
      "anchors": {"синапсы": "synapse", "массы": "masses", "плоти": "flesh",
                  "бойроида": "boyroid", "сексуального": "sexual",
@@ -487,28 +669,28 @@ RU_QUOTATIONS: tuple[dict, ...] = (
            "материалом в мозгу»",
      "note": "Quoted by the reviewer as the proof-text for his own reading of "
              "boy-roid; the aligned English confirms the alignment."},
-    {"id": "RUQ05", "attributor": "Reza Negarestani (FantLab review, 2011)",
+    {"id": "RUQ05", "review": "review409177",
      "kind": "anchor",
      "anchors": {"Гвоздь": "nail", "глаз": "eye"},
      "ru": "«Гвоздь/глаз»",
      "note": "Chapter title.  The `/` link operator survives translation, so "
              "the Russian title is a `Nail/eye` link, not the Russian "
              "compound «гвоздь-глаз»."},
-    {"id": "RUQ06", "attributor": "Reza Negarestani (FantLab review, 2011)",
+    {"id": "RUQ06", "review": "review498807",
      "kind": "anchor",
      "anchors": {"ОСТОРОЖНО": "WARNING", "ЭТА": "THIS",
                  "МАШИНА": "MACHINE", "УБИВАЕТ": "KILLS"},
      "ru": "«ОСТОРОЖНО ЭТА МАШИНА УБИВАЕТ»",
      "note": "First chapter title; the English heading is exactly "
              "`WARNING THIS MACHINE KILLS`."},
-    {"id": "RUQ07", "attributor": "ekidonaa (FantLab review, 12 Feb 2025)",
+    {"id": "RUQ07", "review": "review498807",
      "kind": "anchor",
      "anchors": {"Город": "City", "Трупов": "Cadaver"},
      "ru": "«Город Трупов»",
      "note": "A calque of the book's `Cadaver City`, with the head second - "
              "an unusual Russian word order that itself betrays the "
              "translation."},
-    {"id": "RUQ08", "attributor": "Reza Negarestani (FantLab review, 2011)",
+    {"id": "RUQ08", "review": "review409177",
      "kind": "literal",
      "anchors": {"ледяная": "ice", "туманность": "nebula",
                  "фекальной": "faecal", "черноты": "black"},
@@ -516,7 +698,7 @@ RU_QUOTATIONS: tuple[dict, ...] = (
      "ru": "«[ледяная туманность фекальной черноты]»",
      "note": "A bracketed coinage; the English is `[ice nebula faecal black]` "
              "with the brackets intact."},
-    {"id": "RUQ09", "attributor": "Reza Negarestani (FantLab review, 2011)",
+    {"id": "RUQ09", "review": "review409177",
      "kind": "anchor",
      "anchors": {"могильное": "tomb", "устройство": "device",
                  "воспламеняет": "ignites", "фекального": "faecal",
@@ -527,14 +709,14 @@ RU_QUOTATIONS: tuple[dict, ...] = (
      "note": "The English is `tomb-device ignites faecal Saturn blood "
              "spectre`; the Russian keeps the head-final order and the "
              "`tomb-device` coinage."},
-    {"id": "RUQ10", "attributor": "Reza Negarestani (FantLab review, 2011)",
+    {"id": "RUQ10", "review": "review409177",
      "kind": "anchor",
      "anchors": {"галлюциногенный": "hallucinogenic", "мех": "fur",
                  "промежуточной": "intermediate", "зоне": "area"},
      "ru": "«галлюциногенный мех, что существует в промежуточной зоне»",
      "note": "The English is `hallucinogenic fur that exists to intermediate "
              "area`; note the trailing `::`, again preserved."},
-    {"id": "RUQ11", "attributor": "ekidonaa (FantLab review, 12 Feb 2025)",
+    {"id": "RUQ11", "review": "review498807",
      "kind": "anchor",
      "anchors": {"NDROID": "NDROID"},
      "ru": "«NDROID»",
@@ -546,7 +728,7 @@ RU_QUOTATIONS: tuple[dict, ...] = (
 #: the reader's *claimed* subtitle, which the English does not support.
 DIVERGENT_QUOTE = {
     "id": "RUQ12",
-    "attributor": "Reza Negarestani (FantLab review, 2011)",
+    "review": "review498807",
     "kind": "divergence",
     "anchors": {"ЛИКВИДАЦИЯ": "abolition", "ОСТОРОЖНО": "WARNING"},
     "ru": "«ЛИКВИДАЦИЯ»",
@@ -1746,7 +1928,8 @@ def build(log=print) -> dict:
         alignments.append(aln)
         pages = aln.pages()
         quote_rows.append({
-            "id": q["id"], "attributor": q["attributor"], "kind": q["kind"],
+            "id": q["id"], "attributor": attributor_of(q["review"]),
+            "review": q["review"], "kind": q["kind"],
             "ru": q["ru"], "ru_n_chars": len(q["ru"]),
             "ru_operators": ",".join(operator_skeleton(normalise_ru_quote(q["ru"]))),
             "locator": aln.locator, "n_sites": aln.n_windows,
@@ -1762,9 +1945,9 @@ def build(log=print) -> dict:
             "confidence": aln.confidence(), "note": q["note"],
         })
     write_tsv(OUT / "ru_quotations.tsv",
-              ["id", "attributor", "kind", "ru", "ru_n_chars", "ru_operators",
-               "locator", "n_sites", "n_distinct_texts", "evidence", "sites",
-               "en_page", "en_start", "en_end",
+              ["id", "attributor", "review", "kind", "ru", "ru_n_chars",
+               "ru_operators", "locator", "n_sites", "n_distinct_texts",
+               "evidence", "sites", "en_page", "en_start", "en_end",
                "en", "n_anchors", "n_anchors_hit", "confidence", "note"],
               quote_rows)
     n_located = sum(1 for r in quote_rows if r["evidence"] in
@@ -1772,6 +1955,34 @@ def build(log=print) -> dict:
                      "recurring_text"))
     log(f"[translation_oracle] quotations: {len(quote_rows)} pinned, "
         f"{n_located} uniquely located in the corpus")
+
+    # --- 3b. the review ledger --------------------------------------------
+    # The attribution of a short quotation of a copyrighted translation is the
+    # thing that makes the quotation lawful to publish, so it is recorded as an
+    # artifact of its own rather than left implicit in a string column: who
+    # wrote the review, which account, when it was published, the permalink
+    # that identifies the block, the fingerprint of the text that was
+    # transcribed, and which quotations came out of it.
+    review_rows = []
+    for rev in FANTLAB_REVIEWS:
+        froms = [r["id"] for r in quote_rows if r["review"] == rev["review"]]
+        review_rows.append({
+            "review": rev["review"],
+            "author": rev["author"],
+            "account": rev["account"],
+            "date_published": rev["date_published"],
+            "date": rev["date_published"][:10],
+            "attributor": attributor_of(rev["review"]),
+            "permalink": review_permalink(rev["review"]),
+            "body_sha256": rev["body_sha256"],
+            "n_chars": rev["n_chars"],
+            "n_quotations": len(froms),
+            "quotations": ",".join(froms),
+        })
+    write_tsv(OUT / "fantlab_reviews.tsv",
+              ["review", "author", "account", "date_published", "date",
+               "attributor", "permalink", "body_sha256", "n_chars",
+               "n_quotations", "quotations"], review_rows)
 
     # --- 4. the alignment artifact ----------------------------------------
     align_rows = []
@@ -1907,6 +2118,9 @@ def build(log=print) -> dict:
         {"diag": "mirrors_refused",
          "value": sum(1 for s in SOURCES if s.authorization == AUTH_MIRROR)},
         {"diag": "quotations_pinned", "value": len(quotes)},
+        {"diag": "fantlab_review_blocks", "value": len(FANTLAB_REVIEWS)},
+        {"diag": "quotations_attributed_to_a_pinned_review",
+         "value": sum(1 for q in quotes if q["review"] in REVIEW_BY_ID)},
         {"diag": "quotations_uniquely_located", "value": n_located},
         {"diag": "skeleton_quotes", "value": sum(1 for q in quotes if q["kind"] == "skeleton")},
         {"diag": "aligned_links", "value": len(align_rows)},
@@ -1993,6 +2207,22 @@ def availability_report(ledger: list[dict], summary: dict) -> str:
         "single English text inside the 225-page corpus.  One of the two "
         "left over is a one-word token, which cannot be unique by "
         "construction; see `alignment_report.md`.",
+        "",
+        "**The attribution is what makes these quotable, so it is pinned to "
+        "the source rather than typed.**  The twelve quotations come out of "
+        f"{len(FANTLAB_REVIEWS)} reader reviews - "
+        + ", ".join(f"{r['author']} ({r['date_published'][:10]})"
+                    for r in FANTLAB_REVIEWS)
+        + " - each row of `fantlab_reviews.tsv` carrying the reviewer's "
+        "account, `datePublished`, the `#responseNNNNNN` permalink and a "
+        "SHA-256 over the block body, and each quotation's attribution is "
+        "*derived* from that table.  An earlier revision typed the reviewer "
+        "into each row and got six of the twelve wrong, crediting Reza "
+        "Negarestani, whose name occurs on the work page only in the "
+        "«Рецензии» bibliography as the author of an external review *of* "
+        "the book.  `--verify-reviews` re-reads the page's own "
+        "`schema.org/Review` markup and confirms every quotation still "
+        "occurs in the review it names.",
         "",
         "**The finding that matters:** the Russian edition preserves the "
         "book's symbol channel verbatim.  `=`, `::`, `//`, `++`, `/`, `<<`, "
@@ -2097,6 +2327,26 @@ def alignment_report(alignments, inv_rows, lexicon, checks) -> str:
         "",
         "Generated by `work/translation_oracle.py`.",
         "",
+        "## How a quotation is attributed",
+        "",
+        "Each quotation is a short research quotation of a copyrighted "
+        "translation, so the attribution is what makes it lawful to publish, "
+        "and it is not a free-text field.  Every row carries a `review` key "
+        "naming one of the review blocks in `fantlab_reviews.tsv` - author, "
+        "account, `datePublished`, the `#responseNNNNNN` permalink, and a "
+        "SHA-256 over the block's tag-stripped body - and the attribution "
+        "printed below is *derived* from that row.  All twelve quotations come "
+        "out of three reader reviews; the permalink on each line resolves to "
+        "the exact block the text was transcribed from.",
+        "",
+        "An earlier revision typed the attribution into each row instead, and "
+        "six rows were wrong: they credited Reza Negarestani, whose name does "
+        "appear on the work page but only in the «Рецензии» bibliography block "
+        "as the author of an *external review of the book* (work1915318).  He "
+        "wrote none of these quotations, and that page carries no review body "
+        "at all.  Deriving the field removes the possibility rather than "
+        "correcting six strings.",
+        "",
         "## How a quotation is located",
         "",
         "1. **Skeleton quotations.**  Normalise the Russian quotation's span "
@@ -2129,7 +2379,8 @@ def alignment_report(alignments, inv_rows, lexicon, checks) -> str:
             f"### {aln.quote['id']} - {aln.quote['kind']}, confidence "
             f"{aln.confidence()}",
             "",
-            f"* attributed to: {aln.quote['attributor']}",
+            f"* attributed to: {attributor_of(aln.quote['review'])} "
+            f"({review_permalink(aln.quote['review'])})",
             f"* evidence: `{aln.evidence()}`, {aln.n_windows} site(s) "
             f"({aln.n_distinct} distinct text(s)), confidence {aln.confidence()}",
             f"* sites: {', '.join(f'p{b}' for b in aln.site_pages[:8]) or '-'}",
@@ -2218,10 +2469,35 @@ def main(argv=None):
     ap.add_argument("--out", default=str(OUT))
     ap.add_argument("--probe", action="store_true",
                     help="re-run the HTTP source probes live and diff against the pins")
+    ap.add_argument("--verify-reviews", action="store_true",
+                    help="re-fetch the FantLab work page and confirm every "
+                         "quotation still occurs in the review it is "
+                         "attributed to")
     args = ap.parse_args(argv)
     OUT = Path(args.out)
     if args.probe:
         run_probes()
+    if args.verify_reviews:
+        got = probe(FANTLAB_REVIEWS_URL)
+        if got["status"] != 200:
+            print(f"[translation_oracle] work page returned {got['status']}; "
+                  f"cannot verify")
+            return 1
+        # does each review block still carry the author and date we pinned?
+        blocks = parse_review_blocks(got["text"])
+        drift = sum(1 for r in verify_review_attribution(blocks=blocks)
+                    if r.get("verdict") != "ok")
+        bad = 0
+        for row in check_quotation_provenance(blocks):
+            found = row["found_in"]
+            ok = found == [row["review"]]
+            bad += not ok
+            print(f"[translation_oracle] {row['id']} -> "
+                  f"{row['review']} {'OK' if ok else 'MISMATCH ' + str(found)}")
+        if drift:
+            print(f"[translation_oracle] {drift} review block(s) drifted from "
+                  f"the pins; attribution needs re-checking")
+        return 1 if (bad or drift) else 0
     summary = build()
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     return 0
