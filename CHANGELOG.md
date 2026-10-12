@@ -150,6 +150,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Multi-agent translation committee with disagreement log (#64)
 - LLM glossing pipeline (multi-strategy) (#63)
 - E3 — Distributional semantics & semantic network (#23)
 - E1 — Operator grammar & the symbolic machine (#9)
