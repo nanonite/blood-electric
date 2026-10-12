@@ -188,7 +188,8 @@ PLAIN_READINGS = {
     # --- high: ordinary-English sense, consistent usage -----------------
     "feti": ("fetuses", "high"),
     "oneiric": ("dream-like", "high"),
-    "exoskeleta": ("outer skeletons", "high"),
+    "exoskeleta": ("exoskeleta: plural of exoskeleton, the outer skeleton; "
+                   "a body-machine term", "medium"),
     "ovarium": ("ovary", "high"),
     "osmosing": ("seeping through, blending", "high"),
     "rhythmus": ("rhythm", "high"),
