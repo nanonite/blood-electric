@@ -69,6 +69,39 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   model is called; the build is byte-identical on rebuild. New: `work/translation_committee.py` +
   `work/test_translation_committee.py` (53 tests, including a suite-wide re-derivation of every row's
   classification from the facts).
+- Consistency checker over the termbase, `analysis/consistency/` (#71) — five deterministic checks
+  that a term's reading does not drift between the artifacts that carry it: #56's `GLOSS_TERMS`
+  vs its own computed termbase row, #62's `PLAIN_READINGS` vs `GLOSS_TERMS` (one surface, one
+  curated gloss, never two), the #30 entity glossary's role / does-done-to verbs vs the termbase's
+  entity columns, `OPERATOR_GLOSSES` checked against itself for contradiction or duplication, and
+  a global one-term-one-gloss sweep across every artifact. **0 violations** over 51 gloss terms,
+  49 plain readings, 49 termbase terms, 98 entity-glossary rows and 10 operator readings. Found and
+  fixed one real inconsistency while building the checker: `work/interlinear_edition.py` glossed
+  `exoskeleta` at `high` confidence as a plain plural while every other body-machine compound in
+  the termbase is `medium` — corrected. New: `work/consistency_checker.py` +
+  `work/test_consistency_checker.py` (36 tests).
+- Anti-pattern guardrails audit, `docs/guardrails.md` + `analysis/guardrails/` (#76) — a checklist
+  pairing five named anti-patterns with the mechanism in the codebase that guards against each one,
+  and a mechanical check per guardrail that reads the *published* artifact of the module it audits
+  rather than re-deriving its numbers (a drift is a build error in the audit, not a silent
+  disagreement). **Hallucinated coherence:** #73's triangulation report must keep disclosing
+  divergent/partial rows alongside convergent ones — currently 37/45 motifs disagree, 6/45 fully
+  convergent. **LLM circularity:** the verdict-computing functions in #63's glossing pipeline and
+  #64's translation committee are parsed with `ast` (function-scoped, so a loader elsewhere in the
+  same file that legitimately talks to a model backend cannot trip it) and must contain no token
+  that would reach a model or re-invoke generation — 0 violations across the 10 functions checked.
+  **Over-correction:** #6's lexical corrector's `REVIEW` class must stay non-empty, i.e. it must
+  keep holding back genuinely ambiguous OOV tokens instead of "fixing" every one it sees —
+  currently 15 corrected vs 200 held back. **Single-method certainty:** a convergence claim must be
+  backed by at least three independent methods — #73 uses five (network community, LDA, NMF,
+  BERTopic-style, KMeans). **Residue-dropping:** #70's coverage ledger must keep itemizing residue
+  rather than claiming none exists, and report zero unexplained residue at every level it closes —
+  11 residue classes itemized, 0 unexplained at all four levels. **All five guardrails currently
+  pass.** New: `work/guardrail_audit.py` + `work/test_guardrail_audit.py` (27 tests: synthetic
+  fixtures construct an all-convergent triangulation summary, a verdict function calling
+  `opencode`, an emptied `REVIEW` class, a two-method convergence claim and an unexplained-residue
+  ledger, and assert each one *fails* its guardrail before the artifact-backed suite pins today's
+  passing result as the regression baseline).
 - Translations as an interpretive oracle, `analysis/translation_oracle/` (#58) — L7's
   "interpretive oracle", run as both a **documented negative result** and a working alignment.
   *Negative:* the A. Skobin Russian edition could not be obtained lawfully, and that is the
