@@ -102,6 +102,25 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   `opencode`, an emptied `REVIEW` class, a two-method convergence claim and an unexplained-residue
   ledger, and assert each one *fails* its guardrail before the artifact-backed suite pins today's
   passing result as the regression baseline).
+- Predictive validity on held-out text, `analysis/heldout_validity/` (#72) — does the derived
+  grammar predict held-out operator sequences and collocations, trained 80% / tested 20%? Two
+  claims, each against its own honest baseline, pages as the split unit so no sequence crosses the
+  boundary and the n-gram vocabulary is train-only (no test leakage into smoothing). *Operator
+  sequences* — the #11/#35 interpolated n-gram Markov model (order 0/1/2, Jelinek-Mercer, per-page):
+  on the conservative chronological split, order 2 **PREDICTS IN PROBABILITY** — perplexity 6.100
+  vs the unigram baseline's 6.792 (a 10.2% gain) and top-2 accuracy rises 44.9%→50.8%, though argmax
+  accuracy does not (30.4%→29.9%: better probability mass, not a better single guess) — and 99.3%
+  of held-out run tokens use a run type seen in training. On the optimistic random split, order 2
+  **overfits** (perplexity 6.323 worse than order 1's 6.228), so the random split only supports
+  order 1. *Collocations* — the #27 PMI/logDice/Dice/t-score association table: rank is **STABLE**
+  at the unit layer (Spearman logDice 0.8984) and **MODERATELY STABLE** at the operator-word layer
+  (0.7080) — a collocation's strength in training predicts its strength in test — but top-100
+  membership does not survive wholesale (overlap 47%/59%, train→test survival 48%/66%, the 4×
+  smaller test split dropping many mid-count train pairs) with no systematic logDice level shift
+  (mean |Δ| 0.86/0.94 on a 14-point scale). Consistent with #11's PARTIALLY IDIOMATIC verdict and
+  #36's finite-memory, page-local verdict: the grammar generalises in probability and in rank, at
+  short range, not as a system that names the one right continuation. New: `work/heldout_validity.py`
+  + `work/test_heldout_validity.py` (86 tests).
 - Formal grammar induction and complexity, `analysis/grammar_induction/` (#36) — is the
   operator/token stream regular, context-free, or does it need context? Four independent
   instruments, each isolating one axis of the Chomsky hierarchy, over the #10/#11 ordered operator
@@ -227,6 +246,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Predictive validity on held-out text (#72)
 - Formal grammar induction and complexity (#36)
 - Anti-pattern guardrails audit (#76)
 - Consistency checker (#71)
