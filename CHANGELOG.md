@@ -102,6 +102,25 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   `opencode`, an emptied `REVIEW` class, a two-method convergence claim and an unexplained-residue
   ledger, and assert each one *fails* its guardrail before the artifact-backed suite pins today's
   passing result as the regression baseline).
+- Formal grammar induction and complexity, `analysis/grammar_induction/` (#36) — is the
+  operator/token stream regular, context-free, or does it need context? Four independent
+  instruments, each isolating one axis of the Chomsky hierarchy, over the #10/#11 ordered operator
+  stream (10,949 tokens, V=11), with the #17/#35 screened unit stream (74,077, V=5,498) as a
+  token-level contrast and the #47 English `punct_core` channel (matched N) as the baseline.
+  **Verdict: FINITE-MEMORY, PAGE-APERIODIC CODE CHANNEL** — regular-like in memory, non-regular
+  (drifting) in state space; no context-free and no context-sensitive evidence; neither i.i.d.
+  noise nor a copy loop. Subword complexity p(L) sits below an i.i.d. null at every L but is
+  reproduced to within ~1% by a page-order-shuffle null (the structure is page-local, not a global
+  grammar) and does not saturate (0.92 of ceiling at L=12, still rising — not a small fixed
+  automaton). The held-out entropy-rate curve plateaus at order 1–2 (2.7597→2.7089 bits) — finite
+  memory. MI(1)=0.1305 bits is 20× the i.i.d. null (permutation p=0.000) — real structure, not
+  noise. LZ78 reuses only 1 of 2,433 phrases — not a copy loop. The `<<`/`>>` pairing is local and
+  shallow (depth ≤ 4 for 225/230 pairs) — no stack, no context-free signature. **The spread between
+  three state-count estimators is the finding:** ~98 predictive states, ≥325 Nerode classes (a
+  growing lower bound), 2,433 LZ78 phrases — small enough to be predictable, too large and
+  drifting to be a small fixed grammar. Reproduces #12/#14's delimiter pairing exactly (230
+  matched / 182 unclosed / 156 stray). New: `work/grammar_induction.py` +
+  `work/test_grammar_induction.py` (35 tests).
 - Translations as an interpretive oracle, `analysis/translation_oracle/` (#58) — L7's
   "interpretive oracle", run as both a **documented negative result** and a working alignment.
   *Negative:* the A. Skobin Russian edition could not be obtained lawfully, and that is the
@@ -208,6 +227,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Formal grammar induction and complexity (#36)
 - Anti-pattern guardrails audit (#76)
 - Consistency checker (#71)
 - Multi-agent translation committee with disagreement log (#64)
