@@ -79,6 +79,9 @@ work/
   glossing_pipeline.py                 # LLM glossing, five prompt strategies + four deterministic
                                        #   checks over the returned glosses (#63)
   test_glossing_pipeline.py            # 95-test regression suite (#63)
+  translation_committee.py             # multi-agent committee over #63's glosses: generator /
+                                       #   critic / comparer loop + disagreement map (#64)
+  test_translation_committee.py        # 53-test regression suite (#64)
   ensemble_ocr.py                      # multi-engine OCR: consensus + glyph-vote atlas (#4)
   test_ensemble_ocr.py                 # regression suite (#4)
   marker_full.log                      # OCR run log
@@ -131,6 +134,7 @@ operator channel verbatim (`literal_operator`, `entity_consistent`) fail it on
 operators — a model asked to copy a channel verbatim annotates around it
 instead, inserting bracketed readings between the operator characters it was
 meant to preserve. Determinism is handled honestly: the model is not deterministic (the same prompt was run three times and returned three different glosses), so the artifacts are **pinned** — one dated capture run (2026-10-10, `opencode run --model opencode/space-bunny-free`), each pin keyed by the sha256 of the prompt it answered so a changed constraint assembly fails the build rather than silently reusing a stale response — while `--live` re-runs the backend and prints a *diff* against the pins instead of rewriting them. No number comes from a live run.
+- [x] Chainlink #64 — multi-agent translation committee with disagreement log: `analysis/committee/` (`disagreement_map.md` — the deliverable, `disagreement_log.tsv` — one row per localised disagreement with its classification, `readings.tsv` — the critic's per-reading facts, `pairs.tsv` — per-pair metrics, `diagnostics.tsv`, `summary.json`) + `work/translation_committee.py` + `work/test_translation_committee.py` (53 tests). #63's five prompt strategies are the committee's **agents**; the harness runs a **generator / critic / comparer loop** over their 25 pinned readings: the generator replays #63's pins (cross-checked against the published `glosses.tsv`), the critic re-judges every reading with the four deterministic checks recomputed from the frozen artifacts (cross-checked against the published `checks.tsv` — a drift is a build error), and the comparer localises every pairwise divergence to surfaces (each operator kept/dropped/added, each #30 entity carried/dropped, each #62 residue surface kept/smoothed, the content-word symmetric difference) and **classifies** it. Four classes: `rule_violation` (the rule governing the surface is breached — the responsible agent is named), `contract_divergence` (both readings did what their differing instructions required — keep vs drop the operator channel), `genuine_ambiguity` (both readings pass every check that applies to them and no instruction explains the difference), `defect_unattributed` (a participant failed some other check — recorded, not silently counted as ambiguity). **136 rows over 50 pairs: 60 rule violations, 28 contract divergences, 19 genuine ambiguities, 29 unattributed defects. Headline: 4 of the 5 sampled passages are genuinely ambiguous** (clause 10 `sucks` vs `draw in`; clause 101 all five compliant yet all ten pairs divergent; clause 1005 the added `crucified`; clause 2789 the OCR `l`/`I`) — while clause 1003, with only one passing reading, has **none**: every divergence there is a defect or a contract. A row is classified by what the readings did *on that surface*, never by a verdict elsewhere — a keep-strategy that kept `<<` as told and failed `/` on another row is a contract divergence on `<<`, not a violation.
 
 ### First-pass headline numbers (full book)
 
@@ -582,6 +586,23 @@ literal so adopting it is a reviewable edit rather than a side effect of
 running a command. Prerequisites are the frozen artifacts only (#17 tokens,
 #33 clauses, #62's interlinear join and gloss tables, #30's glossary).
 `--per-stratum N` widens the sample if more glosses are wanted.
+
+## Reproduce the translation committee (#64)
+
+```bash
+python work/translation_committee.py      # pinned, offline; writes analysis/committee/
+python work/test_translation_committee.py
+```
+
+The committee calls no model: the generator phase replays #63's pins
+through #63's own `resolve_glosses` (so it inherits #63's prompt-hash
+pinning), and the critic and comparer are pure functions of the frozen
+artifacts. Every phase cross-checks #63's published tables — the replayed
+glosses against `glosses.tsv` (text, verdict, operator columns, response
+sha256), the recomputed checks against `checks.tsv` — so the committee
+stands on the published record and fails loudly when it stops agreeing
+with it. Prerequisites are #63's artifacts (`analysis/glossing/`) and,
+through #63's loaders, #17/#33/#30/#62.
 
 ## Key references
 

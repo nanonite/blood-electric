@@ -44,6 +44,31 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   suite-wide assertion that the operator scanner agrees with #17 on every clause, that it re-derives
   #17's 5,227 in-clause / 11,000 total operator tokens, and that the pinned build is byte-identical
   on rebuild).
+- Multi-agent translation committee with disagreement log, `analysis/committee/` (#64) — #63's five
+  prompt strategies as the committee's agents, run through a **generator / critic / comparer loop**
+  over their 25 pinned readings. The generator replays #63's pins through #63's own
+  `resolve_glosses`, cross-checked against the published `glosses.tsv` (gloss text, verdict, operator
+  columns, response sha256); the critic re-judges every reading with the four deterministic checks
+  recomputed from the frozen artifacts, cross-checked against the published `checks.tsv`, so a drift
+  between the two is a build error rather than a finding; the comparer localises every pairwise
+  divergence to surfaces — each operator symbol (kept/dropped/added, counted), each #30 entity
+  (carried/dropped), each #62 residue surface (kept/smoothed), the content-word symmetric difference —
+  and classifies each row. Four classes: `rule_violation` (the rule governing the surface is
+  breached by one reading's own treatment of it, or by both — the responsible agent is named),
+  `contract_divergence` (both readings treated the surface as their differing instructions required —
+  a keep-the-channel strategy vs a drop-it strategy), `genuine_ambiguity` (both readings pass every
+  check that applies to them and no instruction explains the difference), `defect_unattributed`
+  (a participant failed some other check — recorded rather than silently counted as ambiguity).
+  **136 rows over 50 pairs: 60 rule violations, 28 contract divergences, 19 genuine ambiguities, 29
+  unattributed defects. Headline: 4 of the 5 sampled passages are genuinely ambiguous** — clause 10's
+  `sucks` vs `draw in`, clause 101 (all five readings compliant, all ten pairs still divergent on
+  content), clause 1005's added `crucified`, clause 2789's OCR `l`/`I` — while clause 1003, with only
+  one passing reading, has none: every divergence there is a defect or a contract. A row is classified
+  by what the readings did *on that surface*, never by a verdict elsewhere: a keep-strategy that kept
+  `<<` as told and failed `/` on another row is a contract divergence on `<<`, not a violation. No
+  model is called; the build is byte-identical on rebuild. New: `work/translation_committee.py` +
+  `work/test_translation_committee.py` (53 tests, including a suite-wide re-derivation of every row's
+  classification from the facts).
 - Translations as an interpretive oracle, `analysis/translation_oracle/` (#58) — L7's
   "interpretive oracle", run as both a **documented negative result** and a working alignment.
   *Negative:* the A. Skobin Russian edition could not be obtained lawfully, and that is the

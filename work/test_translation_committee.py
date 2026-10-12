@@ -694,8 +694,8 @@ class TestBuild(unittest.TestCase):
     def test_a_missing_63_artifact_is_a_loud_error(self):
         """The committee judges #63's readings; without them it must say
         so rather than generate readings of its own."""
-        with unittest.mock.patch.object(tc, "PUBLISHED_GLOSSES",
-                                         Path("/nonexistent/glosses.tsv")):
+        with mock.patch.object(tc, "PUBLISHED_GLOSSES",
+                               Path("/nonexistent/glosses.tsv")):
             with self.assertRaises(tc.CommitteeError):
                 tc.load_published()
 
