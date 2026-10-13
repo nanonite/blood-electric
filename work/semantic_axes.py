@@ -328,7 +328,7 @@ def cluster_labels(X, pages, texts, labels, k) -> dict:
 # per-axis analysis
 # ---------------------------------------------------------------------------
 def analyse_axis(name, spec, V, vidx, X, texts, clause_ids, pages, cents,
-                 sizes, rng) -> dict:
+                 sizes, rng, n_random: int = N_RANDOM) -> dict:
     """All tests for one named axis.  Returns the axes.tsv row, the
     seed_pairs.tsv rows, the axis_projections.tsv row and the extreme-clause
     rows for this axis."""
@@ -338,7 +338,7 @@ def analyse_axis(name, spec, V, vidx, X, texts, clause_ids, pages, cents,
     # 1. seed-pair coherence + randomized-axis control
     pairs = pair_cosines(V, vidx, axis, plus, minus)
     mean_coh = float(np.mean([c for _p, _m, c in pairs])) if pairs else 0.0
-    ctrl = random_axis_control(V, vidx, plus, minus, rng)
+    ctrl = random_axis_control(V, vidx, plus, minus, rng, n_iter=n_random)
     ctrl_z = zscore(mean_coh, ctrl["mean"], ctrl["sd"])
 
     # 2. clause projection contrast
@@ -349,7 +349,8 @@ def analyse_axis(name, spec, V, vidx, X, texts, clause_ids, pages, cents,
     # 3. cluster separation
     proj_cents = cents @ axis
     spread = separation(proj_cents)
-    spread_null = random_direction_control(cents, spread, rng)
+    spread_null = random_direction_control(cents, spread, rng,
+                                           n_iter=n_random)
     order = list(np.argsort(proj_cents))          # stable, ascending
     top_c, bot_c = int(order[-1]), int(order[0])
 
@@ -513,7 +514,8 @@ def build(out_dir: Path, k: int = KMEANS_K, seed: int = DEFAULT_SEED,
 
     # -- the four named axes -------------------------------------------------
     analyses = [analyse_axis(name, AXES[name], V, vidx, X, texts,
-                             clause_ids, pages, cents, sizes, rng)
+                             clause_ids, pages, cents, sizes, rng,
+                             n_random=n_random)
                 for name in AXES]
     axis_rows = [a["row"] for a in analyses]
     pair_rows = [r for a in analyses for r in a["pairs"]]

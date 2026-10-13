@@ -337,6 +337,24 @@ class TestHelpers(unittest.TestCase):
         ctrl = sa.random_direction_control(cents, value, rng, n_iter=50)
         self.assertLess(abs(ctrl["z"]), 3.0)       # a random direction is typical
 
+    def test_analyse_axis_uses_requested_control_draw_count(self):
+        words = ("flesh", "blood", "machine", "digital")
+        V = np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0],
+                      [0.0, 1.0, 0.0], [0.1, 0.9, 0.0]])
+        vidx = {word: i for i, word in enumerate(words)}
+        X = np.array([[1.0, 0.0, 0.0], [0.9, 0.1, 0.0],
+                      [0.0, 1.0, 0.0], [0.1, 0.9, 0.0]])
+        result = sa.analyse_axis(
+            "organic<->machine",
+            {"plus": words[:2], "minus": words[2:]},
+            V, vidx, X, ["flesh", "blood", "machine", "digital"],
+            [1, 2, 3, 4], [1, 1, 2, 2],
+            np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
+            np.array([2, 2]), np.random.default_rng(7), n_random=7)
+
+        self.assertEqual(len(result["ctrl_draws"]), 7)
+        self.assertEqual([c["n_draws"] for c in result["controls"]], [7, 7])
+
     def test_random_axis_control_beats_named_pairing(self):
         rng = np.random.default_rng(1)
         # three +e0 terms, three -e0 terms, six off-axis noise terms: the
