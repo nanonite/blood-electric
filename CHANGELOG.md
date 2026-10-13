@@ -144,6 +144,31 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   space. The theme-coloured map shows #40's twelve motif regions as neighbourhoods of the same
   cloud, not separate islands (silhouette 0.033, #40's own number). Needs `umap-learn` (the `marker`
   conda env). New: `work/umap_theme_map.py` + `work/test_umap_theme_map.py` (39 tests).
+  - Contrastive semantic axes, `analysis/semantic_axes/` (#43) — the four axes the task names
+    (`organic<->machine`, `self<->other`, `body<->information`, `sacred<->profane`) are built as
+    directions **in #39's own clause-vector space** and tested four ways each: seed-pair coherence
+    against a 200-draw **randomized-axis control** (random pole assignments over the same term
+    pool), the +pole vs −pole clause projection contrast (word-boundary match on the `units` text;
+    overlap disclosed), and the spread of #40's twelve centroids along the axis against a
+    200-direction random null. Seed words are encoded with the pinned #39 SBERT encoder — the
+    module's only encoder call, disclosed, because a word contrast and a clause vector must share
+    one space for the projection test to mean anything (#28's static embeddings are a different
+    space and are never mixed in). The partition is #40's exactly (k=12, `n_init=10`, seed 0;
+    catalogue sizes *and* medoids reproduced). **Verdict: all four axes are real, in a stable
+    strength order — `organic<->machine` strongest, `self<->other` weakest.** Every axis beats both
+    controls (coherence z=+2.73…+3.19; centroid-spread z=+3.97…+17.43) and every clause contrast is
+    positive (d=+0.88…+1.60). `organic<->machine` spread 0.149 (cluster 10 `cadaver·flesh·city`
+    vs cluster 9 `i·lt·l`), `body<->information` 0.104, `sacred<->profane` 0.081 (cluster 1
+    `adam·doll·retro` vs cluster 5 `murder·assassin·entrails`), `self<->other` 0.058 — the last
+    because the book has a thick first-person register and almost no lexicalised *other* (`other`
+    2 clauses, `another` 1), so the axis is carried by one pronoun-heavy cluster instead of two
+    opposed vocabularies. The all-pairs **66 centroid-difference dimensions** show the book's
+    widest gaps all oppose the first-person cluster 9 (10 of the top 12 pairs, self/other pronoun
+    loadings): the strongest semantic dimension is **first person vs everything else** — the
+    self<->other axis measured from the other side. All 29 seed pairs cohere positively (min
+    +0.30 `cherry−hell`, max +0.69 `flesh−code`). Consistent with #40's continuum (silhouette
+    0.033): the axes are directions that separate centroids, not partitions of clauses. New:
+    `work/semantic_axes.py` + `work/test_semantic_axes.py` (34 tests).
 - Formal grammar induction and complexity, `analysis/grammar_induction/` (#36) — is the
   operator/token stream regular, context-free, or does it need context? Four independent
   instruments, each isolating one axis of the Chomsky hierarchy, over the #10/#11 ordered operator
