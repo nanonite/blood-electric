@@ -38,6 +38,10 @@ work/
   test_operator_grammar.py             # 52-test regression suite (#14)
   operator_tokenizer.py                # operator-aware tokenizer: units + parts + seams (#17)
   test_operator_tokenizer.py           # 97-test regression suite (#17)
+  operator_word_mi.py                  # operator-word mutual information: the MI matrix over
+                                       #   #29's lexical domains + per-domain G^2 tests + permutation
+                                       #   nulls (#52)
+  test_operator_word_mi.py             # 60-test regression suite (#52)
   compound_decomposition.py            # compound/portmanteau decomposition + affix lexicon (#18)
   test_compound_decomposition.py       # regression suite (#18)
   neologism_detection.py               # OOV unit screen: coinages / compounds / OCR errors (#19)
@@ -172,8 +176,9 @@ instead, inserting bracketed readings between the operator characters it was
 meant to preserve. Determinism is handled honestly: the model is not deterministic (the same prompt was run three times and returned three different glosses), so the artifacts are **pinned** — one dated capture run (2026-10-10, `opencode run --model opencode/space-bunny-free`), each pin keyed by the sha256 of the prompt it answered so a changed constraint assembly fails the build rather than silently reusing a stale response — while `--live` re-runs the backend and prints a *diff* against the pins instead of rewriting them. No number comes from a live run.
 - [x] Chainlink #64 — multi-agent translation committee with disagreement log: `analysis/committee/` (`disagreement_map.md` — the deliverable, `disagreement_log.tsv` — one row per localised disagreement with its classification, `readings.tsv` — the critic's per-reading facts, `pairs.tsv` — per-pair metrics, `diagnostics.tsv`, `summary.json`) + `work/translation_committee.py` + `work/test_translation_committee.py` (53 tests). #63's five prompt strategies are the committee's **agents**; the harness runs a **generator / critic / comparer loop** over their 25 pinned readings: the generator replays #63's pins (cross-checked against the published `glosses.tsv`), the critic re-judges every reading with the four deterministic checks recomputed from the frozen artifacts (cross-checked against the published `checks.tsv` — a drift is a build error), and the comparer localises every pairwise divergence to surfaces (each operator kept/dropped/added, each #30 entity carried/dropped, each #62 residue surface kept/smoothed, the content-word symmetric difference) and **classifies** it. Four classes: `rule_violation` (the rule governing the surface is breached — the responsible agent is named), `contract_divergence` (both readings did what their differing instructions required — keep vs drop the operator channel), `genuine_ambiguity` (both readings pass every check that applies to them and no instruction explains the difference), `defect_unattributed` (a participant failed some other check — recorded, not silently counted as ambiguity). **136 rows over 50 pairs: 60 rule violations, 28 contract divergences, 19 genuine ambiguities, 29 unattributed defects. Headline: 4 of the 5 sampled passages are genuinely ambiguous** (clause 10 `sucks` vs `draw in`; clause 101 all five compliant yet all ten pairs divergent; clause 1005 the added `crucified`; clause 2789 the OCR `l`/`I`) — while clause 1003, with only one passing reading, has **none**: every divergence there is a defect or a contract. A row is classified by what the readings did *on that surface*, never by a verdict elsewhere — a keep-strategy that kept `<<` as told and failed `/` on another row is a contract divergence on `<<`, not a violation.
 
-### First-pass headline numbers (full book)
+- [x] Chainlink #52 — operator-word mutual information: `analysis/operator_word_mi/` (`operator_domain_mi_report.md` — the deliverable, `mi_matrix.tsv` — the MI matrix, `operator_profile.tsv`, `operator_seed_terms.tsv`, `mi_summary.tsv`, `reconciliation.tsv`, `diagnostics.tsv`, `summary.json`) + `work/operator_word_mi.py` + regression test `work/test_operator_word_mi.py` (60 tests). Converts the operator grammar into statistics: every one of **10,268 screened operator occurrences** (#17's 11,000 minus 732 raw-HTML `<`/`>` tokens, reconciling #10's 10,949) is resolved on the unit layer to the term it stands next to on each side (a free operator takes the nearest surviving unit surface; an in-unit operator takes its own operand substrings, so `=` in `suck=blood` has `suck` left and `blood` right), and those terms are matched against #29's six seeded lexical domains. **Verdicts: the operator predicts the adjacent term strongly (I(O;T) = 1.1938 bits right / 1.2013 left against a 200-replicate label-permutation null of 0.5488 / 0.695, z = 124.8 / 90.1; H(T) 7.39 → H(T|O) 6.20 bits)** — 9x #11's operator-to-operator lag-1 MI (0.1305 bits), which is what #12's role classification asserted and #11's entropy curve could not see. **The issue's own two hypotheses split: `::` before body terms is *rejected*** (P(body|`::`) 2.2% vs 5.7% base, lift 0.39, q < 1e-4 — `::` prefers machine and genetics terms), while **`=` before tech terms is confirmed** (P(machine|`=`) 14.2%, lift 2.49, q < 1e-4) with an even stronger body preference (lift 2.94) and a *genetics* left side (lift 1.76): `=` is the book's cross-domain naming binder (`suck=blood`, `fear=cell`, `gene=TV`). `<<` opens blocks of flesh (body lift 1.72, q = 0.0043, driven by `entrails` 30x at PMI 3.48) while `>>` shows no closing preference. Robustness: the domain totals are insensitive to the compound-part matching rule (0.0776 vs 0.0777 bits) and stable across book halves. Disclosed limits: #29's seed sets cover only 16% of right-hand neighbours, so the matrix is about the domain-bearing minority; multi-domain terms count as incidences in each domain; rare operators (`+` n=15, `|` n=17) are reported but not verdicted.
 
+### First-pass headline numbers (full book)
 | Metric | Value |
 |---|---|
 | word tokens | 74,760 |
@@ -424,6 +429,14 @@ The concordancer reads only frozen artifacts (`analysis/tokenizer/`,
 conda activate marker
 python work/collocation.py                          # writes analysis/collocation/
 python work/test_collocation.py
+```
+
+## Reproduce the operator-word mutual information (#52)
+
+```bash
+conda activate marker
+python work/operator_word_mi.py                     # writes analysis/operator_word_mi/
+python work/test_operator_word_mi.py
 ```
 
 ## Reproduce the parse-attempt / derangement curve (#32)

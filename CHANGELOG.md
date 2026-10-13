@@ -6,6 +6,27 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- Operator-word mutual information, `analysis/operator_word_mi/` (#52) — the operator grammar as
+  statistics. Every one of the 10,268 screened operator occurrences (#17's 11,000 minus the 732
+  raw-HTML `<`/`>` operator tokens, so #10's 10,949 reconciles exactly) is resolved on the unit
+  layer to the term it stands next to on each side: a free operator takes the nearest surviving
+  unit surface, an in-unit operator its own operand substrings (`=` in `suck=blood` → `suck`
+  left, `blood` right). Terms are matched against #29's six seeded domains, the literal parsed
+  from `work/cooccurrence_network.py` with `ast` rather than duplicated. The matrix (operator ×
+  domain pointwise MI over the incidence table) is backed by per-(operator, domain) 1-df G²
+  tests with Benjamini–Hochberg q, three MI totals per side (term-level I(O;T), domain-coarsened
+  I(O;D), incidence multi-information) each against a 200-replicate label-permutation null with
+  both marginals preserved, plus strict-seed and book-half robustness. **Verdicts: the operator
+  predicts the adjacent term (I(O;T) = 1.1938 bits right, 1.2013 left; null 0.5488 / 0.695,
+  z = 124.8 / 90.1) — 9× #11's operator-to-operator lag-1 MI. `::` before body terms is
+  rejected (lift 0.39, q < 1e-4 — it prefers machine/genetics terms); `=` before tech terms is
+  confirmed (machine lift 2.49, body lift 2.94, genetics on its left lift 1.76 — `=` is the
+  book's cross-domain naming binder); `<<` opens blocks of flesh (body lift 1.72, `entrails`
+  30× at PMI 3.48).** Disclosed limits: #29's seeds cover 16% of right-hand neighbours (the
+  matrix is about the domain-bearing minority), multi-domain terms are incidences in each
+  domain, and `+` (n=15) / `|` (n=17) are reported but not verdicted. One upstream defect found
+  on the way: #29's source comment says `blood` is body + violence, but its literal
+  `DOMAIN_SEEDS['violence']` has no `blood` — this build follows the literal and says so.
 - LLM glossing pipeline (five prompt strategies), `analysis/glossing/` (#63) — the first LLM
   output in the workspace, and the first thing built so it can be audited rather than believed.
   Five strategies — `literal_operator` (operator channel preserved verbatim), `register_paraphrase`,
