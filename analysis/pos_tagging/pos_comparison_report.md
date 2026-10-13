@@ -1,6 +1,6 @@
 # POS-tagging the silence-removed residue (#37)
 
-Source: `analysis/silence_removal/v3_operators_to_space.txt` (the plain stream from E1.4, 77,392 word tokens). Reference: 15 general English novels from `analysis/reference_corpora/general_english/`. Reproduce with `python work/pos_tagging.py`; regression test `work/test_pos_tagging.py`.
+Source: `analysis/silence_removal/v3_operators_to_space.txt` (the plain stream from E1.4, 80,260 word tokens). Reference: 15 general English novels from `analysis/reference_corpora/general_english/`. Reproduce with `python work/pos_tagging.py`; regression test `work/test_pos_tagging.py`.
 
 **Method.** A rule-based POS tagger (no NLTK/spaCy in this environment). Three tiers: (1) curated lexicon of ~3000 common English words + Brown corpus verb surface forms, (2) morphological suffix rules for unknown words, (3) bigram contextual disambiguation. The *same* tagger is applied to both the residue stream and the reference corpora, so the comparison is fair by construction.
 

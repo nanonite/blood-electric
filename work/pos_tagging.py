@@ -648,7 +648,7 @@ def _write_report(summary, v3b, geb, v3_dist, ge_dist, ref_balances, stat, dist_
     lines.append("# POS-tagging the silence-removed residue (#37)")
     lines.append("")
     lines.append("Source: `analysis/silence_removal/v3_operators_to_space.txt` "
-                 "(the plain stream from E1.4, 77,392 word tokens). "
+                 f"(the plain stream from E1.4, {v3b['total_tokens']:,} word tokens). "
                  "Reference: 15 general English novels from "
                  "`analysis/reference_corpora/general_english/`. "
                  "Reproduce with `python work/pos_tagging.py`; "
