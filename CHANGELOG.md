@@ -121,6 +121,18 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   #36's finite-memory, page-local verdict: the grammar generalises in probability and in rank, at
   short range, not as a system that names the one right continuation. New: `work/heldout_validity.py`
   + `work/test_heldout_validity.py` (86 tests).
+- POS-tagging the silence-removed residue, `analysis/pos_tagging/` (#37) — tags the #13
+  `v3_operators_to_space` plain stream (80,260 word tokens) and the #56 reference corpora's 15
+  general-English novels (1,628,800 tokens) with a rule-based, auditable tagger (no NLTK/spaCy in
+  this environment: a ~3,000-word lexicon + Brown-corpus verb forms, morphological suffix rules,
+  bigram contextual disambiguation), the same tagger on both streams so the comparison is fair by
+  construction. **Verdict: the residue is noun-heavy relative to normal English** — noun 42.62% vs
+  23.0% (+19.62pp), verb 12.78% vs 21.35% (−8.57pp), noun/verb ratio 3.334 vs 1.077 (English prose
+  runs 1.5–2.5), chi-square highly significant (χ²=10570.07, p<0.001). Three caveats disclosed: the
+  tagger's absolute accuracy is unbenchmarked (only the cross-stream comparison is load-bearing),
+  capitalized unknowns default to NNP (inflating proper nouns on neologisms like `ToKAGE`), and
+  other unknowns default to NN (biasing both streams' noun counts upward together). New:
+  `work/pos_tagging.py` + `work/test_pos_tagging.py` (29 tests).
 - Formal grammar induction and complexity, `analysis/grammar_induction/` (#36) — is the
   operator/token stream regular, context-free, or does it need context? Four independent
   instruments, each isolating one axis of the Chomsky hierarchy, over the #10/#11 ordered operator
@@ -246,6 +258,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- POS-tagging the silence-removed residue (#37)
 - Predictive validity on held-out text (#72)
 - Formal grammar induction and complexity (#36)
 - Anti-pattern guardrails audit (#76)
