@@ -133,6 +133,17 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   capitalized unknowns default to NNP (inflating proper nouns on neologisms like `ToKAGE`), and
   other unknowns default to NN (biasing both streams' noun counts upward together). New:
   `work/pos_tagging.py` + `work/test_pos_tagging.py` (29 tests).
+- UMAP theme map of the book, `analysis/umap_theme_map/` (#42) — projects the #39 SBERT clause
+  embeddings (5,614 clauses, 384-d) with UMAP (primary, cosine) and t-SNE (comparison), coloured by
+  page and by #40's twelve theme clusters (exact partition match). **Verdict: no narrative drift, a
+  real but local loop.** The page-coloured map is one intermixed cloud (consecutive-step/random
+  ratio 0.995; page explains 5.4% of variance; first-/second-half centroid cosine 0.9879) — the book
+  is stationary. The lag-return curve dips significantly below a shuffle null at lags 2–30 (minimum
+  at lag 5, z=−8.2), gone by lag ~400: the "devastating loop" is template recurrence at the scale of
+  a few clauses, not a page-scale cycle — restates #51's no-fixed-periodicity verdict in semantic
+  space. The theme-coloured map shows #40's twelve motif regions as neighbourhoods of the same
+  cloud, not separate islands (silhouette 0.033, #40's own number). Needs `umap-learn` (the `marker`
+  conda env). New: `work/umap_theme_map.py` + `work/test_umap_theme_map.py` (39 tests).
 - Formal grammar induction and complexity, `analysis/grammar_induction/` (#36) — is the
   operator/token stream regular, context-free, or does it need context? Four independent
   instruments, each isolating one axis of the Chomsky hierarchy, over the #10/#11 ordered operator
@@ -258,6 +269,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- UMAP theme map of the book (#42)
 - POS-tagging the silence-removed residue (#37)
 - Predictive validity on held-out text (#72)
 - Formal grammar induction and complexity (#36)
