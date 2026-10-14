@@ -34,8 +34,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import clause_segmentation as cs  # noqa: E402
-import self_similarity as ss  # noqa: E402
+import clause_segmentation as cs
+import self_similarity as ss
 
 _A = {}
 
