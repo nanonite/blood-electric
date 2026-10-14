@@ -341,6 +341,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Self-similarity matrix and loop detection (#54)
 - Operator-word mutual information (#52)
 - Affect and valence curve (#44)
 - UMAP theme map of the book (#42)
