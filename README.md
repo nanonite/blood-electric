@@ -115,6 +115,11 @@ work/
                                        #   directions in #39's clause-vector space, with
                                        #   randomized-axis + random-direction controls
   test_semantic_axes.py                # 34-test regression suite (#43)
+  self_similarity.py                   # #54 paragraph x paragraph cosine self-similarity
+                                       #   matrix: lag curve + permutation null, band
+                                       #   statistics, off-diagonal blocks, page rollup;
+                                       #   English / lexical / view-encoder controls
+  test_self_similarity.py              # 39-test regression suite (#54)
   ensemble_ocr.py                      # multi-engine OCR: consensus + glyph-vote atlas (#4)
   test_ensemble_ocr.py                 # regression suite (#4)
   marker_full.log                      # OCR run log
