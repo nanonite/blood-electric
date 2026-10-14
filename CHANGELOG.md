@@ -6,6 +6,32 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- Self-similarity matrix / loop detection, `analysis/self_similarity/` (#54) — the paragraph ×
+  paragraph cosine self-similarity matrix built from #39's clause vectors, and its structural
+  reading. The unit is a blank-line run of the #7 layout page body (733 runs plus 1 added so that
+  no clause is dropped = 734 records; 717 carry a #33 clause); every #33 clause is joined to exactly
+  one paragraph by offset overlap on `(page, start, end)` (5,614 assigned, none dropped, 23
+  disclosed as spanning a break), and a paragraph's vector is the mean of its clause vectors
+  (`units` view, SBERT, renormalised — no encoder runs for the book). **Verdict: the "loop" is a
+  short diagonal band plus repeating blocks, and neither is a period.** The similar cells are not
+  organised as a running diagonal — of the 9,578 paragraph pairs above cosine 0.8, 0.6% sit within
+  one paragraph of the diagonal (null 0.3%) — and the band is real but short-range (lag-1 mean
+  cosine 0.5648 against a 200-draw order-permutation null of 0.5382, z = +10.8; significant to
+  ~lag 30, at the null from lag 40). The load-bearing long-range structure is a **verbatim return**:
+  the opening section pages 4/5/6/7 recurs on 220/221/222/223 (page cosine 0.9550–0.9998,
+  paragraph-level block mean 0.9488 over 16 cells, `difflib` raw-text identity 0.98, encoder-free
+  lexical control 0.75 against a 0.63 page background) — #35's page-level near-duplicate recovered
+  from the embedding side without any n-grams. Nine further paragraph-scale blocks are thematic
+  repeats (cosine ~0.87, text identity ~0.15), and there are **no template blocks at page scale**
+  above the per-level 99.5th-percentile cut. Controls: a matched English paragraph baseline built
+  the same way from #24's pinned cache (mean cosine 0.327 vs the book's 0.538; 0.03% vs 3.73% of
+  pairs above 0.8), the encoder-free lexical cosine, and a view/encoder sensitivity pass (the block
+  and the headline survive #39's `raw` view and its BGE encoder). Deterministic (fixed seed, 200
+  permutations, no wall-clock); rebuild byte-identical. One defect found and fixed on the way: the
+  band-share denominator counted both triangles of the symmetric matrix while the numerator counted
+  one, halving every reported in-band share (and doubling the headline pair count); the denominator
+  is now the true unordered-pair count, which leaves every z-score unchanged and corrects the
+  shares.
 - Operator-word mutual information, `analysis/operator_word_mi/` (#52) — the operator grammar as
   statistics. Every one of the 10,268 screened operator occurrences (#17's 11,000 minus the 732
   raw-HTML `<`/`>` operator tokens, so #10's 10,949 reconciles exactly) is resolved on the unit

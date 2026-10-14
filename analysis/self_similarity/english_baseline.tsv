@@ -1,0 +1,11 @@
+quantity	book_paragraph	note	english_paragraph
+n_paragraphs	717	matched where the English cache allows	717
+n_sentences	5614	the book's sentences are #33 clauses	5614
+mean_cos	0.53824	book > English = more self-similar than prose (#39's verdict at clause level)	0.32714
+median_cos	0.58251		0.32845
+frac_gt_screen	0.03731	pairs above cosine 0.8	0.00032
+frac_gt_0_95	0.00004	near-duplicate paragraph pairs; English reports the 0.8 screen	not computed
+top_pair_cos	1.00000	most similar pair; English excludes 3 accidentally identical chunks (repeated source sentence)	0.94432
+lag1_mean	0.56480	consecutive paragraphs	0.51737
+lag2_mean	0.57040		0.48274
+lag5_mean	0.56504		0.44099

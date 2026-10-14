@@ -1,0 +1,7 @@
+quantity	here	earlier	note
+clauses assigned to a paragraph	5614	5,614 (#33/#39)	every clause is joined to exactly one paragraph by offset overlap
+screened units inside paragraphs	74077	74,077 (#27)	sum of #39's per-clause screened unit counts
+pages	225	225 (#7)	layout page bodies
+paragraph runs	733	678 text blocks (#7)	blank-line runs incl. headings and figure placeholders
+paragraphs in the similarity matrix	717		paragraphs with at least one #33 clause
+lexical (TF) mean cosine	0.60986		unsupervised control, same paragraphs
