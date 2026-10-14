@@ -662,7 +662,6 @@ def write_report(path, summary, axis_rows, pair_rows, proj_rows, extreme_rows,
       "antonym seed pairs (L5.5 of the method inventory).")
     A("")
     km = summary["kmeans"]
-    supported = [r for r in axis_rows if r["verdict"] == "supported"]
     A(f"**Headline.** All four named axes are real in the #39 clause-vector "
       f"space: every one's seed pairs are coherent with a "
       f"mean-of-poles-minus-mean-of-poles direction far beyond what "
@@ -799,7 +798,7 @@ def write_report(path, summary, axis_rows, pair_rows, proj_rows, extreme_rows,
         for r in rows_p:
             A(f"* p{r['page']} `{r['text']}`")
         A("")
-        A(f"- end:")
+        A("- end:")
         A("")
         for r in rows_m:
             A(f"* p{r['page']} `{r['text']}`")
