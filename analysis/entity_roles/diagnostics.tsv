@@ -1,0 +1,11 @@
+diag	value
+schema	entity_roles/1
+synopsis_page_excluded	224
+synopsis_clauses_excluded	1
+clauses	5613
+screened_units	73840
+events	4829
+roles	9
+role_status	{'evidenced': 6, 'refuted': 1, 'uncertain': 2}
+evidence_rows	50
+hostile_verbs	41

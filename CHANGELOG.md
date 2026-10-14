@@ -6,6 +6,27 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- Entity roles seeded from the jacket synopsis and verified against the text, `analysis/entity_roles/`
+  (#59) — the role table (the deliverable), the per-probe evidence, the refutations and the
+  reconciliation. Nine roles are read **only** off the back-cover synopsis (p224; its five
+  sentences shared with #66 so they cannot drift) and tested against the book text pages 1–223,
+  the synopsis page excluded from its own check. Each role is a set of named probes (presence,
+  recurrence, centrality, the #30 role category, a clause co-occurrence, an actor/verb event),
+  each defining or supporting; the evidence is recomputed with #66's primitives over the frozen
+  #17/#33/#30/#27 artifacts. A role is `evidenced` when every defining probe passes, `uncertain`
+  when some do, and `refuted` when no *substantive* probe does — presence is a precondition, never
+  a role. **Verdict: 6 evidenced / 2 uncertain / 1 refuted.** Sato Corporation is an
+  `organization` whose napalm+torture / torture+victim / vampire+chaos clusters fire; Cadaver City
+  and Placenta World are `place`s; and **EVOL is the pink-ash planet the jacket names** (`The
+  planet of the angel mechanism of the ADAM Doll is EVOL`, `p77:111`). The two uncertainties are
+  predicates, not entities: ANTi-ADAM is the only entity #30 calls an `antagonist` and it
+  co-occurs with ADAM once (`p216:1132`) but **no clash event links them**, and the dog is a
+  recurrent, violent actor (459 mentions, 72 hostile events, 32 dog+zero clauses) but **no
+  `wage`-family verb stands with it** anywhere. **The refutation is Super Cherry 666**: it is a
+  `concept`, never a succubus form, never takes a hunt verb and never stands with the corporation,
+  while the hunting formula itself is real and belongs to ToKAGE (`p147:70`) — the jacket copy
+  attaches the formula to the wrong entrant. Offline, deterministic, byte-identical rerun;
+  47-test regression suite `work/test_entity_roles.py`.
 - Intertextual n-gram matching against the Siratori corpus, `analysis/intertext/` (#57) — the
   overlap report (the deliverable), the source survey, and the acquisition ledger. Every book
   n-gram (n = 1–6) recovered on the #17 word-part layer, markup-screened exactly as #56, is matched

@@ -1,0 +1,28 @@
+{
+ "clauses": 5613,
+ "determinism": "every artifact is byte-identical on rebuild except the generated stamp, which no statistic reads",
+ "events": 4829,
+ "evidence_rows": 50,
+ "generated": "2026-10-14 16:55 UTC",
+ "page_range": null,
+ "role_status": {
+  "evidenced": 6,
+  "refuted": 1,
+  "uncertain": 2
+ },
+ "roles": 9,
+ "schema": "entity_roles/1",
+ "screened_units": 73840,
+ "synopsis_page_excluded": 224,
+ "verdicts": {
+  "R1": "evidenced",
+  "R2": "uncertain",
+  "R3": "evidenced",
+  "R4": "evidenced",
+  "R5": "evidenced",
+  "R6": "uncertain",
+  "R7": "refuted",
+  "R8": "evidenced",
+  "R9": "evidenced"
+ }
+}

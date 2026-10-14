@@ -1,0 +1,16 @@
+quantity	earlier	here	match
+#30 accepted entities in the glossary (rows read)	98	98	ok
+#66 mention count for ADAM	129	129	ok
+#66 mention count for ADAM Doll	165	165	ok
+#66 mention count for ANTI-ADAM	6	6	ok
+#66 mention count for Cadaver City	191	191	ok
+#66 mention count for Placenta World	57	57	ok
+#66 mention count for Sato Corporation	24	24	ok
+#66 mention count for Sato	3	3	ok
+#66 mention count for the dog	459	459	ok
+#66 mention count for Super Cherry 666	3	3	ok
+#66 mention count for EVOL	13	13	ok
+#66 mention count for vamp	13	13	ok
+#66 event rows re-derived	4829	4829	ok
+p224 synopsis page excluded from the check	224	excluded (1 clauses)	ok
+screened units = assigned + unassigned	73840	73840	ok

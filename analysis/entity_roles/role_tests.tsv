@@ -1,0 +1,51 @@
+role_id	entity	probe	kind	defining	measure	observed	threshold	status	citations
+R1	ADAM / ADAM Doll	presence of the ADAM family	present	y	mentions of {ADAM|ADAM Doll}	165	>=1	pass	
+R1	ADAM / ADAM Doll	recurrence across the book	recurrence	y	pages carrying {ADAM|ADAM Doll}	81	>=20	pass	
+R1	ADAM / ADAM Doll	centrality: >= 100 actor/target events	centrality	y	actor/target events for {ADAM|ADAM Doll}	603	>=100	pass	p15:924; p15:947; p16:238
+R1	ADAM / ADAM Doll	category in {creature, persona}	category	y	#30/#66 role of {ADAM|ADAM Doll}	creature/persona	in {creature|persona}	pass	
+R1	ADAM / ADAM Doll	ignition/burn event for the family	any_verb	n	{ADAM|ADAM Doll} as actor/target of {burn|burning|burns|burnt|ignite|ignited|ignites}	3	>=1	pass	p74:405; p75:569; p217:1936
+R1	ADAM / ADAM Doll	ADAM Doll co-occurs with Cadaver City	cooccur	n	clauses with both ADAM Doll and Cadaver City	4	>=1	pass	p72:1611; p116:1344; p142:475
+R2	ANTi-ADAM	presence of ANTi-ADAM	present	y	mentions of {ANTI-ADAM}	6	>=1	pass	
+R2	ANTi-ADAM	category in {antagonist, persona}	category	y	#30/#66 role of {ANTI-ADAM}	antagonist	in {antagonist|persona}	pass	
+R2	ANTi-ADAM	clash/hostile event between ADAM and ANTi-ADAM	pair_verb	y	event between {ADAM|ADAM Doll} and {ANTI-ADAM}	0	>=1	fail	
+R2	ANTi-ADAM	ADAM / ANTi-ADAM co-occur in a clause	cooccur	n	clauses with both ADAM and ANTI-ADAM	1	>=1	pass	p216:1132
+R2	ANTi-ADAM	hostile actor/target events	hostile	n	hostile actor/target events for {ANTI-ADAM}	1	>=1	pass	p144:1521
+R3	Cadaver City	presence of Cadaver City	present	y	mentions of {Cadaver City}	191	>=1	pass	
+R3	Cadaver City	recurrence >= 3 pages	recurrence	y	pages carrying {Cadaver City}	118	>=3	pass	
+R3	Cadaver City	category place	category	y	#30/#66 role of {Cadaver City}	place	in {place}	pass	
+R3	Cadaver City	ADAM Doll co-occurs with Cadaver City	cooccur	n	clauses with both ADAM Doll and Cadaver City	4	>=1	pass	p72:1611; p116:1344; p142:475
+R3	Cadaver City	embryo family co-occurs with Cadaver City	cooccur	n	clauses with both embryo and Cadaver City	18	>=1	pass	p33:1240; p67:1883; p72:1611
+R3	Cadaver City	angel family co-occurs with Cadaver City	cooccur	n	clauses with both angel and Cadaver City	9	>=1	pass	p67:1883; p72:1611; p77:961
+R4	Placenta World	presence of Placenta World	present	y	mentions of {Placenta World}	57	>=1	pass	
+R4	Placenta World	recurrence >= 3 pages	recurrence	y	pages carrying {Placenta World}	44	>=3	pass	
+R4	Placenta World	category place	category	y	#30/#66 role of {Placenta World}	place	in {place}	pass	
+R4	Placenta World	the dog co-occurs with Placenta World	cooccur	n	clauses with both the dog and Placenta World	2	>=1	pass	p62:1105; p194:881
+R4	Placenta World	the dog wages war in Placenta World	any_verb	n	{the dog} as actor/target of {wage|waged|wages|waging}	0	>=1	fail	
+R5	Sato Corporation	presence of Sato Corporation	present	y	mentions of {Sato Corporation|Sato}	24	>=1	pass	
+R5	Sato Corporation	category organization	category	y	#30/#66 role of {Sato Corporation|Sato}	organization	in {organization}	pass	
+R5	Sato Corporation	napalm family co-occurs with torture family	cooccur	y	clauses with both napalm and torture	6	>=1	pass	p83:415; p89:1259; p119:60
+R5	Sato Corporation	torture family co-occurs with victim family	cooccur	y	clauses with both torture and victim	7	>=1	pass	p83:415; p119:60; p130:2
+R5	Sato Corporation	Sato Corporation co-occurs with victim family	cooccur	y	clauses with both Sato Corporation and victim	6	>=1	pass	p79:1396; p83:415; p147:2
+R5	Sato Corporation	vampire family co-occurs with the corporation	cooccur	n	clauses with both vamp and Sato Corporation	5	>=1	pass	p39:1114; p87:537; p161:396
+R5	Sato Corporation	chaos family co-occurs with vampire family	cooccur	n	clauses with both chaos and vamp	3	>=1	pass	p71:1521; p82:1177; p177:685
+R5	Sato Corporation	hostile actor/target events	hostile	n	hostile actor/target events for {Sato Corporation|Sato}	7	>=1	pass	p25:254; p41:199; p53:1687
+R6	the dog (dogs of zero)	presence of the dog referent	present	y	mentions of {the dog}	459	>=1	pass	
+R6	the dog (dogs of zero)	recurrence >= 20 pages	recurrence	y	pages carrying {the dog}	188	>=20	pass	
+R6	the dog (dogs of zero)	the dog wages war (wage-family verb)	any_verb	y	{the dog} as actor/target of {wage|waged|wages|waging}	0	>=1	fail	
+R6	the dog (dogs of zero)	the dog co-occurs with the zero family	cooccur	n	clauses with both the dog and zero	32	>=1	pass	p8:485; p15:689; p21:1510
+R6	the dog (dogs of zero)	hostile actor/target events	hostile	n	hostile actor/target events for {the dog}	72	>=1	pass	p7:324; p10:1007; p12:268
+R7	Super Cherry 666	presence of Super Cherry 666	present	y	mentions of {Super Cherry 666}	3	>=1	pass	
+R7	Super Cherry 666	category in {creature, persona}	category	y	#30/#66 role of {Super Cherry 666}	concept	in {creature|persona}	fail	
+R7	Super Cherry 666	Super Cherry 666 co-occurs with the succubus family	cooccur	y	clauses with both Super Cherry 666 and succubus	0	>=1	fail	
+R7	Super Cherry 666	Super Cherry 666 takes a hunt verb	any_verb	y	{Super Cherry 666} as actor/target of {hunt|hunted|hunting|hunts}	0	>=1	fail	
+R7	Super Cherry 666	Super Cherry 666 co-occurs with Sato Corporation	cooccur	n	clauses with both Super Cherry 666 and Sato Corporation	0	>=1	fail	
+R8	EVOL	presence of EVOL	present	y	mentions of {EVOL}	13	>=1	pass	
+R8	EVOL	recurrence >= 3 pages	recurrence	y	pages carrying {EVOL}	12	>=3	pass	
+R8	EVOL	EVOL co-occurs with the planet family	cooccur	y	clauses with both EVOL and planet	6	>=1	pass	p77:111; p79:1396; p111:475
+R8	EVOL	EVOL co-occurs with the pink family	cooccur	n	clauses with both EVOL and pink	5	>=1	pass	p79:1396; p132:767; p153:2045
+R8	EVOL	EVOL co-occurs with the ash family	cooccur	n	clauses with both EVOL and ash	4	>=1	pass	p79:1396; p153:2045; p173:904
+R9	digital vampires	presence of the vamp family entity	present	y	mentions of {vamp}	13	>=1	pass	
+R9	digital vampires	recurrence >= 3 pages	recurrence	y	pages carrying {vamp}	13	>=3	pass	
+R9	digital vampires	vampire family co-occurs with the corporation	cooccur	y	clauses with both vamp and Sato Corporation	5	>=1	pass	p39:1114; p87:537; p161:396
+R9	digital vampires	category in {persona, concept, creature}	category	n	#30/#66 role of {vamp}	persona	in {concept|creature|persona}	pass	
+R9	digital vampires	hostile actor/target events	hostile	n	hostile actor/target events for {vamp}	2	>=1	pass	p54:1312; p116:1067

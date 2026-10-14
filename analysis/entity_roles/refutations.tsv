@@ -1,0 +1,4 @@
+role_id	entity	status	failed_defining	missing_evidence
+R2	ANTi-ADAM	uncertain	clash/hostile event between ADAM and ANTi-ADAM [pair_verb] (0 observed, wanted >=1)	PASS present 6; PASS category antagonist; FAIL pair_verb 0 (>=1); PASS cooccur 1; PASS hostile 1
+R6	the dog (dogs of zero)	uncertain	the dog wages war (wage-family verb) [any_verb] (0 observed, wanted >=1)	PASS present 459; PASS recurrence 188; FAIL any_verb 0 (>=1); PASS cooccur 32; PASS hostile 72
+R7	Super Cherry 666	refuted	category in {creature, persona} [category] (concept observed, wanted in {creature|persona}); Super Cherry 666 co-occurs with the succubus family [cooccur] (0 observed, wanted >=1); Super Cherry 666 takes a hunt verb [any_verb] (0 observed, wanted >=1)	PASS present 3; FAIL category concept (in {creature|persona}); FAIL cooccur 0 (>=1); FAIL any_verb 0 (>=1); FAIL cooccur 0 (>=1)
