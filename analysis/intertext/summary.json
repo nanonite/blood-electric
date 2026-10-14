@@ -1,0 +1,157 @@
+{
+  "schema": "intertext/1",
+  "probe_date": "2026-10-14",
+  "book": {
+    "parts": 80363,
+    "dropped": 593,
+    "kept": 79770,
+    "tokens": 79770,
+    "types": 3683,
+    "pages": 225
+  },
+  "ngram_ns": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "min_book_freq": 2,
+  "shuffle_seed": 57,
+  "arms": {
+    "siratori_other": {
+      "kind": "same_author",
+      "source_key": "siratori_greatworks_ks",
+      "sequences": 1,
+      "tokens": 330,
+      "types": 125,
+      "book_shared_types_n2plus": 205
+    },
+    "author_paratext": {
+      "kind": "author_meta",
+      "source_key": "interview_3am_nude_brain",
+      "sequences": 5,
+      "tokens": 167,
+      "types": 95,
+      "book_shared_types_n2plus": 75
+    },
+    "influence_cyberpunk": {
+      "kind": "influence",
+      "source_key": "influence_cyberpunk",
+      "sequences": 3,
+      "tokens": 105,
+      "types": 81,
+      "book_shared_types_n2plus": 13
+    },
+    "influence_cutup_surrealist": {
+      "kind": "influence",
+      "source_key": "influence_cutup_surrealist",
+      "sequences": 3,
+      "tokens": 56,
+      "types": 46,
+      "book_shared_types_n2plus": 7
+    },
+    "influence_finnegans_wake": {
+      "kind": "influence",
+      "source_key": "influence_finnegans_wake",
+      "sequences": 1,
+      "tokens": 49,
+      "types": 42,
+      "book_shared_types_n2plus": 2
+    },
+    "register_general_english": {
+      "kind": "register",
+      "source_key": "register_general_english",
+      "sequences": 15,
+      "tokens": 1609978,
+      "types": 46678,
+      "book_shared_types_n2plus": 5617
+    },
+    "register_medical": {
+      "kind": "register",
+      "source_key": "register_medical",
+      "sequences": 1,
+      "tokens": 380072,
+      "types": 25536,
+      "book_shared_types_n2plus": 1485
+    },
+    "register_legal": {
+      "kind": "register",
+      "source_key": "register_legal",
+      "sequences": 5,
+      "tokens": 350406,
+      "types": 13378,
+      "book_shared_types_n2plus": 2413
+    },
+    "register_cs": {
+      "kind": "register",
+      "source_key": "register_cs",
+      "sequences": 1,
+      "tokens": 103048,
+      "types": 8996,
+      "book_shared_types_n2plus": 1049
+    }
+  },
+  "formula_classes": {
+    "author_common": 98,
+    "author_idiolect": 116,
+    "book_unique": 22838,
+    "genre_influence": 1,
+    "influence_common": 14,
+    "register_common": 2902
+  },
+  "named_works": [
+    {
+      "key": "siratori_headcode",
+      "verdict": "print_or_lending_only",
+      "authorization": "print_or_lending_only"
+    },
+    {
+      "key": "siratori_human_worms",
+      "verdict": "searched_not_found",
+      "authorization": "searched_not_found"
+    },
+    {
+      "key": "siratori_smart_d",
+      "verdict": "searched_not_found",
+      "authorization": "searched_not_found"
+    },
+    {
+      "key": "siratori_genedub",
+      "verdict": "searched_not_found",
+      "authorization": "searched_not_found"
+    },
+    {
+      "key": "siratori_nonexistence",
+      "verdict": "searched_not_found",
+      "authorization": "searched_not_found"
+    }
+  ],
+  "named_works_ingested": 0,
+  "siratori_excerpt": {
+    "source_url": "http://www.greatworks.org.uk/poems/ks.html",
+    "paragraphs": 3,
+    "tokens": 330,
+    "sha256": "436ebaddce73d9ca13cfc18eac03ce55b1a00c97dc4c970614aaf6e59b383f5c",
+    "pinned_tokens": 330,
+    "pinned_sha256": "436ebaddce73d9ca13cfc18eac03ce55b1a00c97dc4c970614aaf6e59b383f5c",
+    "matches_pin": true
+  },
+  "paratext": {
+    "author_turns": 5,
+    "interviewer_turns_excluded": 1,
+    "excluded_ids": [
+      "PT04"
+    ],
+    "source_keys": [
+      "interview_3am_nude_brain",
+      "interview_rhizome_14416_wb"
+    ]
+  },
+  "provenance": {
+    "manifest_files_checked": 29,
+    "manifest_files_ok": 29,
+    "all_corpus_files_match_manifest": true
+  }
+}

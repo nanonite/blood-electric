@@ -1,0 +1,14 @@
+check	value	detail
+arm_siratori_other_nonempty	1	1 sequences, 0 empty
+arm_author_paratext_nonempty	5	5 sequences, 0 empty
+arm_influence_cyberpunk_nonempty	3	3 sequences, 0 empty
+arm_influence_cutup_surrealist_nonempty	3	3 sequences, 0 empty
+arm_influence_finnegans_wake_nonempty	1	1 sequences, 0 empty
+arm_register_general_english_nonempty	15	15 sequences, 0 empty
+arm_register_medical_nonempty	1	1 sequences, 0 empty
+arm_register_legal_nonempty	5	5 sequences, 0 empty
+arm_register_cs_nonempty	1	1 sequences, 0 empty
+named_works_ingested	0	must be 0 (no named work may be ingested)
+book_formulas_n2plus	25969	n>=2 with book freq >= 2
+paratext_interviewer_turns_excluded	1	interviewer turns dropped from the author arm: PT04
+corpus_files_provenance_ok	29	29 manifest files checked against #56 sha256

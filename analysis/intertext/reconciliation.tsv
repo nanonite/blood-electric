@@ -1,0 +1,41 @@
+item	expected	observed	source	ok
+book_parts_total	80363	80363	#56 keyness.load_book_words	y
+book_kept_tokens	79770	79770	#56 keyness.load_book_words	y
+book_types	3683	3683	#56 keyness.load_book_words	y
+book_unigram_total	79770	79770	intertext n=1 counter	y
+siratori_excerpt_tokens	330	330	pinned Great Works excerpt	y
+siratori_excerpt_sha256	436ebaddce73d9ca13cfc18eac03ce55b1a00c97dc4c970614aaf6e59b383f5c	436ebaddce73d9ca13cfc18eac03ce55b1a00c97dc4c970614aaf6e59b383f5c	pinned Great Works excerpt	y
+corpus_file:general_english/pride_and_prejudice.txt	3f6bb9d6f78e0293	3f6bb9d6f78e0293	#56 manifest (sha256)	y
+corpus_file:general_english/moby_dick.txt	907420db6c4b68c7	907420db6c4b68c7	#56 manifest (sha256)	y
+corpus_file:general_english/frankenstein.txt	7810cd483cffcf2c	7810cd483cffcf2c	#56 manifest (sha256)	y
+corpus_file:general_english/dracula.txt	96cd16eacdbfebae	96cd16eacdbfebae	#56 manifest (sha256)	y
+corpus_file:general_english/sherlock_holmes.txt	922e2a12ccb43a4c	922e2a12ccb43a4c	#56 manifest (sha256)	y
+corpus_file:general_english/heart_of_darkness.txt	c0b0bc91c7695f9d	c0b0bc91c7695f9d	#56 manifest (sha256)	y
+corpus_file:general_english/dorian_gray.txt	38f36b510417177a	38f36b510417177a	#56 manifest (sha256)	y
+corpus_file:general_english/ulysses.txt	e03094626f9528cf	e03094626f9528cf	#56 manifest (sha256)	y
+corpus_file:general_english/great_gatsby.txt	a567e8344ff054d1	a567e8344ff054d1	#56 manifest (sha256)	y
+corpus_file:general_english/alice_in_wonderland.txt	80c9af47ff5506a8	80c9af47ff5506a8	#56 manifest (sha256)	y
+corpus_file:general_english/the_time_machine.txt	f1f94567ee2a606e	f1f94567ee2a606e	#56 manifest (sha256)	y
+corpus_file:general_english/the_war_of_the_worlds.txt	677b457a6c9a0880	677b457a6c9a0880	#56 manifest (sha256)	y
+corpus_file:general_english/a_tale_of_two_cities.txt	e861cdd11f5c4b12	e861cdd11f5c4b12	#56 manifest (sha256)	y
+corpus_file:general_english/great_expectations.txt	8f127eb9c96bedab	8f127eb9c96bedab	#56 manifest (sha256)	y
+corpus_file:general_english/metamorphosis.txt	5929ff489bc9263b	5929ff489bc9263b	#56 manifest (sha256)	y
+corpus_file:cyberpunk/gibson.txt	141a5fd892be0136	141a5fd892be0136	#56 manifest (sha256)	y
+corpus_file:cyberpunk/stephenson.txt	bc12a6f973b1e539	bc12a6f973b1e539	#56 manifest (sha256)	y
+corpus_file:cyberpunk/sterling.txt	350d915e2e4a0f66	350d915e2e4a0f66	#56 manifest (sha256)	y
+corpus_file:cutup_surrealist/burroughs.txt	de1dc3ca0e35c21d	de1dc3ca0e35c21d	#56 manifest (sha256)	y
+corpus_file:cutup_surrealist/artaud.txt	ca9d8e5d3f816c53	ca9d8e5d3f816c53	#56 manifest (sha256)	y
+corpus_file:cutup_surrealist/breton.txt	3393e4531d2a1ed1	3393e4531d2a1ed1	#56 manifest (sha256)	y
+corpus_file:finnegans_wake/joyce.txt	73a4e8ae2ac176fe	73a4e8ae2ac176fe	#56 manifest (sha256)	y
+corpus_file:legal/federalist_papers.txt	2c9095d7faad0767	2c9095d7faad0767	#56 manifest (sha256)	y
+corpus_file:legal/declaration_of_independence.txt	dfe1bc9d22f3b5f8	dfe1bc9d22f3b5f8	#56 manifest (sha256)	y
+corpus_file:legal/magna_carta.txt	cc1754b214a4efce	cc1754b214a4efce	#56 manifest (sha256)	y
+corpus_file:legal/the_law.txt	217f8862dcdc0aee	217f8862dcdc0aee	#56 manifest (sha256)	y
+corpus_file:legal/the_social_contract.txt	eb72bb4394712f52	eb72bb4394712f52	#56 manifest (sha256)	y
+corpus_file:medical/pubmed_abstracts.txt	939e419c6a6081a2	939e419c6a6081a2	#56 manifest (sha256)	y
+corpus_file:cs/arxiv_abstracts.txt	89911c1e6c7bdcce	89911c1e6c7bdcce	#56 manifest (sha256)	y
+author_paratext_present	y	y	#58 author_paratext.tsv	y
+register_register_general_english_tokens	1609978	1609978	#56 manifest vs intertext	y
+register_register_medical_tokens	380072	380072	#56 manifest vs intertext	y
+register_register_legal_tokens	350406	350406	#56 manifest vs intertext	y
+register_register_cs_tokens	103048	103048	#56 manifest vs intertext	y

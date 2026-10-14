@@ -6,6 +6,31 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [Unreleased]
 
 ### Added
+- Intertextual n-gram matching against the Siratori corpus, `analysis/intertext/` (#57) — the
+  overlap report (the deliverable), the source survey, and the acquisition ledger. Every book
+  n-gram (n = 1–6) recovered on the #17 word-part layer, markup-screened exactly as #56, is matched
+  against a *different*, freely published Siratori text (the *Great Works* piece, first three
+  paragraphs reused and attributed), the author's own interview turns (via #58), the #56 cited-
+  influence excerpts (Gibson / Stephenson / Sterling; Burroughs / Artaud / Breton; Joyce), and the
+  #56 general/technical registers — with a shuffle null (5 permutations, seed 57) so every count is
+  read against chance. **Verdict — an honest split.** The named-work half is a documented negative:
+  all five works the task names (*Headcode*, *Human_Worms*, *Smart-d*, *GENEDUB*, *Nonexistence*)
+  are in-copyright print editions (the only reachable copy is a borrow-only Internet Archive scan of
+  *Headcode*, `access-restricted-item=true`), so **0 of 5 named works is ingested** and no other
+  text silently stands in for them. The idiolect half is a positive: of 25,969 book formulas
+  (n ≥ 2, freq ≥ 2), **116 are `author_idiolect`** — present in the author's own text and in *no*
+  general/technical register (104 in the different Siratori work, 12 in the interview paratext
+  alone) — and the signal is far above chance (same-author probe n = 3: 97 observed vs 7.2 expected,
+  13.5×; n = 4: 36 vs 0.4). The signature formulas are `soul gram`, `cold blooded disease`,
+  `retro adam`, `brain universe`, `dna channel`, `data mutant`. The genre side is underpowered by
+  construction (the influence excerpts are 49–105 tokens): no influence arm shares a trigram and the
+  only non-generic shared bigram is `a virus` (Burroughs, *The Ticket That Exploded*), so
+  genre-vs-English cannot be separated at that size — reported as a bound, not a finding.
+  **Provenance is verified, not asserted:** the embedded excerpt is pinned by token count (330) and
+  sha256, and `--probe` re-fetches the live page to check it; every reference-corpus file is
+  verified against #56's manifest sha256 (a mismatch is a hard failure in `reconciliation.tsv`); and
+  the one interviewer turn in #58's Q/A table is excluded from the author arm. Offline,
+  deterministic, byte-identical rerun; 52-test regression suite `work/test_intertext.py`.
 - Self-similarity matrix / loop detection, `analysis/self_similarity/` (#54) — the paragraph ×
   paragraph cosine self-similarity matrix built from #39's clause vectors, and its structural
   reading. The unit is a blank-line run of the #7 layout page body (733 runs plus 1 added so that
@@ -341,6 +366,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Intertextual n-gram matching vs Siratori corpus (#57)
 - Self-similarity matrix and loop detection (#54)
 - Operator-word mutual information (#52)
 - Affect and valence curve (#44)

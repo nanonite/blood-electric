@@ -1,0 +1,10 @@
+arm	kind	label	source_key	sequences	tokens	types	book_shared_types_n2plus
+siratori_other	same_author	a different, freely published Siratori text (Great Works)	siratori_greatworks_ks	1	330	125	205
+author_paratext	author_meta	the author's own words in published interviews (3AM / Rhizome, via #58)	interview_3am_nude_brain	5	167	95	75
+influence_cyberpunk	influence	Gibson / Stephenson / Sterling excerpts	influence_cyberpunk	3	105	81	13
+influence_cutup_surrealist	influence	Burroughs / Artaud / Breton excerpts	influence_cutup_surrealist	3	56	46	7
+influence_finnegans_wake	influence	Joyce, Finnegans Wake excerpts	influence_finnegans_wake	1	49	42	2
+register_general_english	register	general English prose (control)	register_general_english	15	1609978	46678	5617
+register_medical	register	PubMed abstracts (control)	register_medical	1	380072	25536	1485
+register_legal	register	public-domain legal texts (control)	register_legal	5	350406	13378	2413
+register_cs	register	arXiv cs abstracts (control)	register_cs	1	103048	8996	1049

@@ -185,6 +185,8 @@ meant to preserve. Determinism is handled honestly: the model is not determinist
 
 - [x] Chainlink #54 — self-similarity matrix (loop detection): `analysis/self_similarity/` (`self_similarity_report.md` — the deliverable, `paragraph_matrix.tsv` — one row per paragraph with its page and clause counts, `paragraph_cosines.tsv` — the most similar pairs, `page_matrix.tsv` — the 225 × 225 page rollup, `lag_curve.tsv` / `page_lag_curve.tsv` — the lag curves against a 200-draw order-permutation null, `band_stats.tsv` — in-band share vs the same null, `offdiag_blocks.tsv` — the block catalogue at both resolutions, `english_baseline.tsv`, `sensitivity.tsv`, `reconciliation.tsv`, `diagnostics.tsv`, `summary.json`, `similarity.png`, `lag_curve.png`, `self_similarity.npz`) + `work/self_similarity.py` + regression test `work/test_self_similarity.py` (39 tests). The paragraph unit is a blank-line run of the #7 layout page body (733 runs plus 1 added so no clause is dropped = 734; 717 carry a #33 clause), every #33 clause is joined to exactly one paragraph by offset overlap on `(page, start, end)` (5,614 assigned, none dropped, 23 disclosed as spanning a break), and a paragraph's vector is the mean of its #39 clause vectors (`units` view, SBERT, renormalised) — no encoder runs for the book. **Verdict: the "loop" is a short diagonal band plus repeating blocks, and neither is a period.** The similar cells are not organised as a running diagonal — of the 9,578 paragraph pairs above cosine 0.8, 0.6% sit within one paragraph of the diagonal (null 0.3%) — and the band is real but short-range (lag-1 mean cosine 0.5648 against an order-permutation null of 0.5382, z = +10.8, significant to ~lag 30 and at the null from lag 40). The load-bearing long-range structure is a **verbatim return**: the opening section pages 4/5/6/7 recurs on 220/221/222/223 (page cosine 0.9550–0.9998, paragraph block mean 0.9488 over 16 cells, `difflib` raw-text identity 0.98, encoder-free lexical control 0.75 vs a 0.63 page background) — #35's page near-duplicate recovered from the embedding side with no n-grams. Nine further paragraph-scale blocks are thematic repeats (cosine ~0.87, text identity ~0.15) and there are **no template blocks at page scale** above the per-level 99.5th-percentile cut. Controls: a matched English paragraph baseline built the same way from #24's pinned cache (mean cosine 0.327 vs the book's 0.538; 0.03% vs 3.73% of pairs above 0.8), the encoder-free lexical cosine, and a view/encoder sensitivity pass (the block and the headline survive #39's `raw` view and its BGE encoder). Deterministic (fixed seed, 200 permutations, no wall-clock); rebuild byte-identical.
 
+- [x] Chainlink #57 — intertextual n-gram matching vs the Siratori corpus: `analysis/intertext/` (`overlap_report.md` — the deliverable, `availability_report.md` — the source survey, `sources.tsv` — the acquisition ledger with provenance/reuse terms per source, `corpus_summary.tsv`, `overlap_by_n.tsv`, `null_control.tsv`, `formula_classes.tsv`, `shared_formulas.tsv`, `reconciliation.tsv`, `diagnostics.tsv`, `summary.json`) + `work/intertext.py` + regression test `work/test_intertext.py` (52 tests). **Honest split: the named-work half is a documented negative, the idiolect half is a positive.** All five works the task names (*Headcode*, *Human_Worms*, *Smart-d*, *GENEDUB*, *Nonexistence*) are in-copyright print editions — the only reachable copy is a borrow-only Internet Archive scan of *Headcode* (`access-restricted-item=true`) — so **0 of 5 named works is ingested** and no other text silently stands in for them. The one genuine second Siratori text available under the project's research-quotation convention is a different, freely published piece (*Great Works*, first three paragraphs reused, attributed), used as an idiolect probe. The matcher is n-gram overlap (n=1–6) over the #17 word-part layer screened exactly as #56, with a **shuffle null** (5 permutations, seed 57) so every count is read against chance. **Verdict:** of 25,969 book formulas (n≥2, freq≥2), **116 are `author_idiolect`** — present in the author's own other text and in *no* general/technical register — and the signal is far above chance (same-author probe n=3: 97 observed vs 7.2 expected, 13.5×; n=4: 36 vs 0.4). The signature formulas are `soul gram`, `cold blooded disease`, `retro adam`, `brain universe`, `dna channel`, `data mutant`. The **genre side is underpowered by construction** (the #56 influence excerpts are 49–105 tokens): no influence arm shares a trigram with the book and the only non-generic shared bigram is `a virus`, so genre-vs-English cannot be separated at that size — reported as a bound, not a finding. **Provenance is verified, not asserted:** the embedded *Great Works* excerpt is pinned by token count and sha256 and `--probe` re-fetches the page to check it, every reference-corpus file is checked against #56's manifest sha256, and the one interviewer turn in #58's Q/A table is excluded from the author arm — so no comparison text is invented or silently substituted.
+
 ### First-pass headline numbers (full book)
 | Metric | Value |
 |---|---|
@@ -338,6 +340,25 @@ general-English keys survive no technical register and are reported as
 reference residue: they are artifacts of comparing against 19th-century prose.
 Reproduce (`python work/keyness.py`) and read
 `analysis/keyness/keyness_report.md` for the per-corpus key / anti-key tables.
+
+## Reproduce the intertextual n-gram matching (#57)
+
+```bash
+conda activate marker
+python work/intertext.py            # offline, deterministic; writes analysis/intertext/
+python work/intertext.py --quick    # sampled register corpora + 1 shuffle (regression suite)
+python work/intertext.py --probe    # re-run the live HTTP source probes (writes nothing)
+python work/test_intertext.py
+```
+
+The build is offline and byte-identical on a rerun: it reads only frozen
+artifacts (the #17 word-part layer screened as #56, the #56 reference corpora,
+#58's pinned author-paratext quotations) and the one embedded, attributed
+excerpt of a freely published Siratori text. `--probe` re-requests each source
+URL and prints a diff against the pinned statuses in `sources.tsv`; it never
+writes. The acquisition ledger records the five named works as print-only /
+searched-not-found with their evidence — none is ingested, and no other text
+stands in for them.
 
 ## Reproduce the multi-level entropy analysis (#47)
 
