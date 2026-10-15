@@ -281,6 +281,24 @@ class TestStatistics(unittest.TestCase):
         self.assertEqual(rs.krippendorff_alpha([[6, 5], [6, 5], [6, 5]]),
                          rs.krippendorff_alpha([[1, 0], [1, 0], [1, 0]]))
 
+    def test_the_default_metric_is_the_preregistered_one(self):
+        """Every published alpha must come from the registered metric.
+
+        The protocol names ``PRIMARY_METRIC`` as the pre-registered
+        difference function and the pilot calls ``krippendorff_alpha``
+        without one, so the default *is* the registered metric -- and it
+        must be ``interval``, because a 0-7 scale carries equal intervals.
+        """
+        import inspect
+
+        self.assertEqual(rs.PRIMARY_METRIC, "interval")
+        sig = inspect.signature(rs.krippendorff_alpha)
+        self.assertEqual(sig.parameters["metric"].default, rs.PRIMARY_METRIC)
+        cats = (0, 5, 6, 7)
+        marg = {c: 1.0 for c in cats}
+        self.assertEqual(
+            rs._delta_squared(cats, marg, rs.PRIMARY_METRIC)[(0, 7)], 49.0)
+
     def test_interval_metric_charges_distance_and_ordinal_cannot(self):
         """The metric, not the labels, is what makes a 6-vs-5 cheap.
 
@@ -653,6 +671,45 @@ class TestBuildArtifacts(unittest.TestCase):
         self.assertIn("simulated", report.lower())
         # and the protocol must point at the report, not stand alone
         self.assertIn("simulation", _ART["protocol"].lower())
+
+    def test_protocol_registers_the_metric_the_pilot_uses(self):
+        """The pre-registration names the analysis's own difference function.
+
+        The pilot's published alphas are computed with the default metric,
+        so a protocol that registered a different difference function would
+        make every alpha in the report a violation of its own
+        pre-registration -- and ``protocol.md`` is generated text, so only
+        this test keeps the two together.  The choice is load-bearing, not
+        cosmetic: on the pilot data the ordinal metric gives a materially
+        different alpha, so the published column is checked against an
+        independent recomputation with the registered metric.
+        """
+        protocol = _ART["protocol"]
+        self.assertIn(f"alpha with the **{rs.PRIMARY_METRIC}**", protocol)
+        self.assertNotIn("alpha with the **ordinal**", protocol)
+        # and the report must call the same metric the pre-registered one
+        self.assertIn(f"**{rs.PRIMARY_METRIC}** difference function",
+                      _ART["report"])
+        self.assertIn("the pre-registered metric", _ART["report"])
+        # recompute the primary item's alpha from the published ratings
+        rows = [r for r in _ART["pilot_ratings"]
+                if r["item"] == rs.PRIMARY_ITEM]
+        readers = sorted({r["reader"] for r in rows})
+        cells = sorted({r["pair_id"] for r in rows})
+        grid = {(r["reader"], r["pair_id"]): int(r["score"]) for r in rows}
+        units = rs._units_from_cells(grid, readers, cells)
+        published = [float(r["alpha"]) for r in _ART["agreement"]
+                     if r["item"] == rs.PRIMARY_ITEM]
+        self.assertEqual(len(published), 1)
+        self.assertAlmostEqual(
+            published[0],
+            round(rs.krippendorff_alpha(units, metric=rs.PRIMARY_METRIC), 4),
+            places=4)
+        # the metric choice must actually move the number
+        self.assertNotAlmostEqual(
+            rs.krippendorff_alpha(units, metric="ordinal"),
+            rs.krippendorff_alpha(units, metric=rs.PRIMARY_METRIC),
+            places=2)
 
     def test_identity_tops_every_block_in_the_published_summary(self):
         rows = _ART["pilot_cell_summary"]

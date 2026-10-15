@@ -223,6 +223,16 @@ ITEM_KEYS = SCALE_KEYS + PAIRWISE_KEYS
 PRIMARY_ITEM = "felt_fidelity"
 APPEAL_ITEM = "reading_appeal"
 
+# The difference function the study pre-registers for Krippendorff's alpha
+# and the pilot computes with: a 0-7 rating scale carries equal intervals,
+# so ``delta^2 = (c - k)^2`` keeps a 6-against-5 disagreement cheap and a
+# 6-against-0 one expensive.  ``ordinal`` and ``nominal`` are implemented
+# and published alongside it as robustness checks (see
+# ``_delta_squared``), never as silent substitutes, and the protocol text,
+# the pilot and the report all name *this* one -- the constant is the
+# single source for all three so they cannot drift apart again.
+PRIMARY_METRIC = "interval"
+
 # Shown to the participant, verbatim, above the first block.
 CONSENT_INSTRUCTIONS = (
     "You will be shown short passages from a literary work alongside "
@@ -858,7 +868,7 @@ def _delta_squared(categories: tuple, marginals: dict, metric: str) -> dict:
     return delta
 
 
-def krippendorff_alpha(units: list, metric: str = "interval") -> float:
+def krippendorff_alpha(units: list, metric: str = PRIMARY_METRIC) -> float:
     """Krippendorff's alpha over units of unequal size.
 
     ``units`` is a list of rating vectors, one per *unit* (a (clause, cell)
@@ -871,9 +881,9 @@ def krippendorff_alpha(units: list, metric: str = "interval") -> float:
     without replacement.
 
     The metric is chosen by ``_delta_squared`` and defaults to the
-    study's pre-registered one (``interval``, a 0-7 Likert scale carries
-    equal intervals).  Pinned by the regression suite against two published
-    worked examples from Krippendorff's 2011 note:
+    study's pre-registered one (``PRIMARY_METRIC`` = ``interval``, a 0-7
+    Likert scale carries equal intervals).  Pinned by the regression suite
+    against two published worked examples from Krippendorff's 2011 note:
 
     * binary data, two observers, no missing values, nominal metric
       (``o_00=10, o_01=o_10=4, o_11=2``) -> alpha = 2/21 = 0.095238 --
@@ -1551,10 +1561,20 @@ def _emit_protocol(L: list, ctx: dict) -> None:
       f"`aggregate_fidelity`, with a {N_PERM}-draw permutation test on "
       "the machine labels.")
     a("4. **Inter-reader agreement**: Krippendorff's alpha with the "
-      "ordinal difference function, per item, over cells as units, each "
-      "read against a null that re-groups the values (each reader's scores "
-      f"shuffled across cells, {ALPHA_DRAWS} draws). The traps are "
-      "analysed pass/fail against their known answer, not as a scale.")
+      f"**{PRIMARY_METRIC}** difference function "
+      "(`delta^2 = (c - k)^2`): a 0-7 rating scale carries equal "
+      "intervals, so a 6-against-5 disagreement must cost far less than a "
+      "6-against-0 one. Per item, over cells as units, each read against a "
+      "null that re-groups the values (each reader's scores shuffled "
+      f"across cells, {ALPHA_DRAWS} draws). The **ordinal** and "
+      "**nominal** difference functions are implemented and published "
+      "alongside it as robustness checks, not substitutes: with only two "
+      "categories observed the ordinal metric cannot tell a 0-vs-6 "
+      "disagreement from a 5-vs-6 one, and the nominal metric prices "
+      "every non-identical pair the same, which on a finely-graded scale "
+      "drives alpha toward zero however well the readers agree. The "
+      "traps are analysed pass/fail against their known answer, not as a "
+      "scale.")
     a("5. **Per-stratum descriptives**: reported separately, never pooled "
       "into a single verdict.")
     a("6. **Effect size**: Kruskal-Wallis H and eta-squared across "
@@ -1722,19 +1742,20 @@ def build_report(ctx: dict) -> str:
         a(f"| `{r['item']}` | {r['alpha']:.4f} | {r['null_q05']} | "
           f"{r['null_q95']} | {r['null_p']:.4f} |")
     a("")
-    a("Krippendorff's alpha with the **interval** difference function "
-      "(`delta^2 = (c - k)^2`, the pre-registered metric): a 0-7 rating "
-      "scale carries equal intervals, so a 6 against a 5 must cost far less "
-      "than a 6 against a 0. The **ordinal** and **nominal** metrics are "
-      "implemented and disclosed alongside it, because a case has to be "
-      "made rather than assumed: with only two categories observed, the "
-      "ordinal metric cannot tell a 0-vs-6 disagreement from a 5-vs-6 one, "
-      "and the nominal metric prices every non-identical pair the same -- "
-      "on a finely-graded scale that drives alpha toward zero however well "
-      "the readers agree. Each alpha is read against a null that re-groups "
-      "the values (every reader's scores shuffled across the cells), so a "
-      "number is only impressive against what chance produces on the same "
-      "data. The implementation is pinned against the worked example in "
+    a(f"Krippendorff's alpha with the **{PRIMARY_METRIC}** difference "
+      "function (`delta^2 = (c - k)^2`, the pre-registered metric): a 0-7 "
+      "rating scale carries equal intervals, so a 6 against a 5 must cost "
+      "far less than a 6 against a 0. The **ordinal** and **nominal** "
+      "metrics are implemented and disclosed alongside it, because a case "
+      "has to be made rather than assumed: with only two categories "
+      "observed, the ordinal metric cannot tell a 0-vs-6 disagreement "
+      "from a 5-vs-6 one, and the nominal metric prices every "
+      "non-identical pair the same -- on a finely-graded scale that "
+      "drives alpha toward zero however well the readers agree. Each "
+      "alpha is read against a null that re-groups the values (every "
+      "reader's scores shuffled across the cells), so a number is only "
+      "impressive against what chance produces on the same data. The "
+      "implementation is pinned against the worked example in "
       "Krippendorff's 2011 note (binary data, two observers, no missing "
       "values, `o_00=10, o_01=o_10=4, o_11=2` -> alpha = 2/21) by the "
       "regression suite.\n")
