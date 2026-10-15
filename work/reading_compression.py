@@ -885,34 +885,41 @@ def build_report(ctx: dict) -> str:
           f"{_fmt(s.null_bpc_mean)} | "
           f"{_fmt(s.null_z, 3)} | {s.n_chars} | {s.n_words} |")
     a("")
+    fb_live = {s.reading: s.n_clauses - s.n_control_fallback for s in fb}
+    fb_total = fb[0].n_clauses if fb else 0
+    lv = fb_live.get("v3_operators_to_space", 0)
+    lg = fb_live.get("interlinear_gloss", 0)
     a("``control fallback`` is the count of covered clauses where the reading "
       "has at least as many words as its clause, so the control *is* the "
       "original and no subsample happens -- the leg is degenerate on those "
-      "clauses. For the full-book readings that is the overwhelming majority "
-      "(v3/v4 match their clause's word count on 5,470 of 5,614 clauses; the "
-      "gloss on 5,479), because operator removal changes the characters "
-      "between words, not the letters. **So for the three operator/gloss "
-      "readings the primary leg is, in practice, the raw bits/char delta "
-      "against the identity stream -- a length-normalized comparison, but not "
-      "a length-matched one.** The honest reading of the column is therefore: "
-      "these readings do not win by deleting, because there is almost nothing "
-      "to delete; the control demonstrates that rather than manufactures a "
-      "correction. Where the control is live (the ~75 shorter gloss clauses, "
-      "and any reading a future pipeline produces that shortens) the "
-      "word-matching is exact and the delta is a true restructuring "
-      "measure.\n")
+      "clauses. For the full-book readings that is the overwhelming majority: "
+      f"the control is live on only {lv} of {fb_total} clauses for v3/v4 "
+      f"(fallback {fb_total - lv}) and {lg} of {fb_total} for the gloss "
+      f"(fallback {fb_total - lg}), because operator removal changes the "
+      "characters between words, not the letters. **So for the three "
+      "operator/gloss readings the primary leg is, in practice, the raw "
+      "bits/char delta against the identity stream -- a length-normalized "
+      "comparison, but not a length-matched one.** The honest reading of the "
+      "column is therefore: these readings do not win by deleting, because "
+      "there is almost nothing to delete; the control demonstrates that rather "
+      "than manufactures a correction. Where the control is live (those "
+      f"{lg} and {lv} clauses, and any reading a future pipeline produces "
+      "that shortens) the word-matching is exact and the delta is a true "
+      "restructuring measure.\n")
     a("")
+    sd_max = max((s.control_bpc_sd for s in fb), default=float("nan"))
     a("``control sd`` is the spread of the control over its "
-      f"{N_CONTROL_SEEDS} seeds. On the full book it is ~3e-4 bits/char, so "
-      "the full-book deltas sit two orders of magnitude above the control's "
-      "own noise. On the 5-clause sample it is 0.0000 for almost every row "
-      "-- and that is not precision, it is the fallback again: for four of "
-      "the five LLM strategies *every* covered clause falls back, so all "
-      "seeds produce the identical stream and the sd is exactly zero (the "
-      "exception is ``llm_scene_summary``, with one genuinely shorter clause "
-      "and an sd of ~0.04). The sample population is reported descriptively "
-      "and never ranked against the full book. ``null_z`` compares the "
-      "reading with its own permuted pairings: values near 0 mean the gain "
+      f"{N_CONTROL_SEEDS} seeds. On the full-book population it is at most "
+      f"{sd_max:.1e} bits/char, so the full-book deltas sit two orders of "
+      "magnitude above the control's own noise. On the 5-clause sample it is "
+      "0.0000 for almost every row -- and that is not precision, it is the "
+      "fallback again: for four of the five LLM strategies *every* covered "
+      "clause falls back, so all seeds produce the identical stream and the "
+      "sd is exactly zero (the exception is ``llm_scene_summary``, with one "
+      "genuinely shorter clause and an sd of ~0.04). The sample population is "
+      "reported descriptively and never ranked against the full book. "
+      "``null_z`` compares the reading with its own permuted "
+      "pairings: values near 0 mean the gain "
       "does not depend on the clause<->text pairing.\n")
     a("")
 
@@ -1056,12 +1063,13 @@ def build_report(ctx: dict) -> str:
     a("- **The primary leg is a length-matched control that is mostly inert "
       "on this corpus.** It subsamples only where a reading is *shorter* "
       "than its clause; the readings here are word-count preserving or "
-      "expanding on ~5,470 of 5,614 clauses (v3/v4/gloss), so for them the "
-      "control is the original and the delta is effectively the raw bits/char "
-      "delta. What the control does establish is that these readings win "
-      "without deleting -- there is almost nothing to delete -- and it "
-      "remains exact for any future reading that shortens (the ~75 shorter "
-      "gloss clauses are live, and the word-matching is exact there). The "
+      f"expanding on {fb_total - min(lv, lg)} of {fb_total} clauses "
+      "(v3/v4/gloss), so for them the control is the original and the delta "
+      "is effectively the raw bits/char delta. What the control does "
+      "establish is that these readings win without deleting -- there is "
+      "almost nothing to delete -- and it remains exact for any future "
+      f"reading that shortens (the {lg} shorter gloss clauses are live, "
+      f"{lv} for v3/v4, and the word-matching is exact there). The "
       "per-reading live-clause counts are in ``controls_and_nulls.tsv``.")
     a("- **The control neutralises *arbitrary* deletion, not *structured* "
       "deletion.** A reading that keeps only each clause's first word is a "
@@ -1220,6 +1228,11 @@ def main(argv=None):
                              if i % TEST_EVERY == 0], originals)
 
     # ---- artifacts ----
+    # The inventory reports the *reading's own coverage*, so its word count
+    # is the sum over every clause it defines (not just the evaluated set),
+    # and it uses the harness's one word rule -- ``word_count`` -- so it
+    # agrees with ``reading_n_words`` in controls_and_nulls.tsv for the same
+    # reading (a test pins that agreement).
     order_index = {c: i for i, c in enumerate(order)}
     write_tsv(out_dir / "readings.tsv",
               ["reading", "kind", "population", "source", "n_clauses",
@@ -1228,7 +1241,7 @@ def main(argv=None):
                 "source": r.source, "n_clauses": len(r.texts),
                 "n_chars": len(reading_stream(
                     r, sorted(r.texts, key=lambda c: order_index[c]))),
-                "n_words": sum(len(t.split()) for t in r.texts.values())}
+                "n_words": sum(word_count(t) for t in r.texts.values())}
                for r in readings])
 
     identity_bpc = {(s.population, c): b

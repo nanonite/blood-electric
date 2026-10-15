@@ -344,13 +344,67 @@ class TestBuildArtifacts(unittest.TestCase):
                        "not proof that an interpretation is true"):
             self.assertIn(needle, rep)
 
+    def test_report_live_clause_count_matches_the_artifact(self):
+        # The report's live-clause count is derived from the scored rows, so
+        # it must equal n_clauses - control_fallback_clauses for the reading
+        # it names -- a hardcoded prose number would drift from the table
+        # printed 40 lines above it.
+        cn = {(r["reading"], r["population"]): r for r in rows("controls_and_nulls")}
+        rep = _ART["report"]
+        for name in ("interlinear_gloss", "v3_operators_to_space"):
+            r = cn[(name, "full_book")]
+            live = int(r["n_clauses"]) - int(r["control_fallback_clauses"])
+            fb = int(r["control_fallback_clauses"])
+            frag = (f"{live} of {r['n_clauses']} clauses for v3/v4"
+                    if name == "v3_operators_to_space"
+                    else f"{live} of {r['n_clauses']} for the gloss")
+            self.assertIn(frag, rep, name)
+            self.assertIn(f"fallback {fb}", rep, name)
+        # and no stale figure survives anywhere in the report
+        self.assertNotIn("~75", rep)
+
+    def test_report_sd_figure_matches_the_artifact(self):
+        # the prose sd figure is the published maximum, not a remembered one
+        sd = max(float(r["length_control_sd_bits_per_char"])
+                 for r in rows("controls_and_nulls")
+                 if r["population"] == "full_book")
+        self.assertIn(f"{sd:.1e}", _ART["report"])
+
+    def test_one_word_rule_across_artifacts(self):
+        # readings.tsv and controls_and_nulls.tsv must both count words with
+        # the documented single rule (maximal letter runs).  A whitespace
+        # count in either would publish a second, conflicting number for the
+        # same reading -- identity would show 74,420 vs 80,334.
+        order, by_id = rc.load_clauses()
+        readings = {r.name: r for r in rc.build_readings(order, by_id)}
+        inv = {r["reading"]: r for r in rows("readings")}
+        for name, row in inv.items():
+            expected = sum(rc.word_count(t) for t in readings[name].texts.values())
+            self.assertEqual(int(row["n_words"]), expected,
+                             f"{name}: readings.tsv uses a different word rule")
+        cn = {(r["reading"], r["population"]): r for r in rows("controls_and_nulls")}
+        eval_ids = [c for i, c in enumerate(order) if i % rc.QUICK_EVERY == 0] \
+            if _ART["summary"]["quick"] else order
+        for (name, pop), ctrl in cn.items():
+            if pop != "full_book":
+                continue
+            expected = sum(rc.word_count(readings[name].texts[c])
+                           for c in eval_ids if c in readings[name].texts)
+            self.assertEqual(int(ctrl["reading_n_words"]), expected,
+                             f"{name}: controls_and_nulls.tsv uses a "
+                             "different word rule")
+
     def test_report_discloses_the_control_fallback(self):
         # The primary leg's disclosed limit must be in the report, with the
         # live-clause counts, not only in the code.
         rep = _ART["report"]
         self.assertIn("no subsample", rep)
         self.assertIn("control fallback", rep)
-        self.assertIn("5,470 of 5,614", rep)
+        cn = {(r["reading"], r["population"]): r for r in rows("controls_and_nulls")}
+        r = cn[("v3_operators_to_space", "full_book")]
+        live = int(r["n_clauses"]) - int(r["control_fallback_clauses"])
+        self.assertIn(f"live on only {live} of {r['n_clauses']} clauses", rep)
+        self.assertIn(f"fallback {r['control_fallback_clauses']}", rep)
         # and the sample population is described as 5 clauses, never 25
         self.assertNotIn("25-clause sample", rep)
         self.assertNotIn("25 clauses", rep)
