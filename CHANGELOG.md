@@ -390,6 +390,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Back-translation harness (#74)
 - Compression test for candidate readings (#68)
 - Spectral reading artifact (#67)
 - Seed entity roles from jacket synopsis, verify against text (#59)
