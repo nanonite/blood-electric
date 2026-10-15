@@ -367,6 +367,36 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   stamp.
 
 ### Fixed
+- Corpus-cache reproducibility and normalization in `work/reference_corpora.py` (#80, follow-up from
+  #56's review) — three fixes. **(1) `--no-download` is now genuinely cache-only for every source.**
+  It used to skip only the live PubMed / arXiv queries while `build_general_english` and
+  `build_legal` still fetched any missing Gutenberg text over the network; both builders now take
+  `allow_download` and, cache-only, *skip a missing text with a warning instead of fetching it*, so
+  the flag can never be surprised by a network call (the eight pinned baselines remain a local file
+  copy from #24's cache; a missing #24 cache is still a hard error naming the fix). **(2) The
+  manifest's SHA-256 semantics are declared and enforced.** The docstring used to claim the live
+  corpora were "pinned by content hash" while the manifest was rewritten with whatever bytes a build
+  happened to produce — a claim with no mechanism behind it. The manifest now carries a `hash_role`
+  column: `enforced_pin` for the eight #24 baselines (verified against the constants in the script; a
+  mismatch aborts the build, never a silent substitution) and `observed_checksum` for everything
+  else. For the observed rows, the previously published manifest's value is treated as the file's
+  expected pin, and a rebuild that yields different bytes is **reported as drift** — logged and
+  persisted to `manifest_drift.tsv` beside the manifest, expected value preserved — *before* the
+  manifest is rewritten; a file that vanishes from a build is warned about rather than dropped
+  silently. A clean rebuild clears a stale drift report, and a fresh clone (no prior manifest)
+  records observations without crying drift. **(3) arXiv Atom summaries are entity-decoded before
+  tokenization.** `parse_arxiv` now runs each `<summary>` body through `html.unescape` *after*
+  extraction (so a decoded `&lt;` cannot re-enter the markup the regex matches): left raw, `&amp;`,
+  `&#39;`, `&rsquo;` & co. reached the #24 word tokenizer as fake word tokens (`amp`, `rsquo`,
+  `quot`) and inflated the counts. Rebuilt the corpora cache-only — no network touched, every corpus
+  byte-identical, only the manifest gains the `hash_role` column. Tests 27 → **42** in
+  `work/test_reference_corpora.py`, all offline: entity decoding (named + numeric refs, no token
+  leakage, decode-after-extract), enforced pins (a tampered or missing #24 cache aborts), cache-only
+  mode (a planted `download` that raises on any call proves the whole `ensure_corpora` build is
+  network-free, missing texts are skipped with warnings, download mode still fetches, and a second
+  rebuild is byte-identical), and drift (reported + persisted, clean rebuild clears the stale
+  report, new files are not drift). Downstream manifest consumers (`test_keyness`, `test_intertext`,
+  `test_reading_compression`, `test_frequency_zipf`) read named columns and stay green.
 - Pre-registered agreement metric in the reader study (#75) — the generated `protocol.md` registered
   Krippendorff's alpha with the **ordinal** difference function while the pilot computed, and the
   report disclosed, the **interval** metric, so every published alpha was a violation of its own

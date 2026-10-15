@@ -19,9 +19,11 @@ compares *Blood Electric* against:
                     (95 years from publication -> 2034), so this is a fair-use
                     excerpt corpus, not the full text.
   medical           PubMed abstracts (open access).  A live E-utilities query;
-                    the result is pinned by SHA-256 in the manifest.
+                    the manifest records the observed checksum, and a rebuild
+                    that changes it is reported as drift.
   cs                arXiv abstracts (open access), categories cs.AI / cs.LG /
-                    cs.CL.  Live API query, pinned by SHA-256.
+                    cs.CL.  Live API query; same observed-checksum +
+                    drift-reporting treatment as medical.
   legal             public-domain legal / political texts (Gutenberg): the
                     Federalist Papers, the Declaration of Independence, Magna
                     Carta, Bastiat's *The Law*, Rousseau's *The Social Contract*.
@@ -29,9 +31,33 @@ compares *Blood Electric* against:
 Every corpus is written under ``analysis/reference_corpora/<corpus>/`` and the
 provenance of every file is recorded in ``manifest.tsv`` (source, licence,
 SHA-256, token count).  The manifest carries **no wall-clock date**, so it is
-byte-for-byte reproducible given the same downloads; the live PubMed / arXiv
-corpora are pinned by content hash, and a re-download that yields different
-bytes is reported rather than silently absorbed.
+byte-for-byte reproducible given the same downloads.
+
+**What the manifest SHA-256 values are.**  Every value is a checksum of the
+exact bytes in the tree, and the ``hash_role`` column records what each one
+*means*, because the two roles are enforced differently:
+
+  enforced_pin       the eight #24 baselines (``PINNED_GENERAL``).  Their
+                     hashes are constants in this script; a copy whose hash
+                     does not match **aborts the build** -- the bytes are
+                     never silently substituted.
+  observed_checksum  everything else (the extra Gutenberg novels, the legal
+                     register, the excerpt files, the live PubMed / arXiv
+                     corpora).  The value records what this build produced;
+                     the previously published manifest's value for the same
+                     file is treated as its **expected pin**, and a rebuild
+                     that yields different bytes is reported as drift --
+                     logged and written to ``manifest_drift.tsv`` beside the
+                     manifest -- instead of silently replacing the row.  A
+                     fresh clone has no prior manifest, so the first build
+                     records observations only.
+
+**``--no-download`` is cache-only for every source.**  The live PubMed /
+arXiv queries are skipped, and so is any general-English or legal Gutenberg
+text that is not already cached: those are skipped with a warning rather than
+fetched, so the flag can never be surprised by a network call.  (The eight
+pinned baselines are copied from #24's local cache, a file copy rather than a
+network fetch; a missing #24 cache is a hard error telling you to run #24.)
 
 The fair-use excerpt files are embedded below as string constants and written
 verbatim, so a fresh clone regenerates them from the committed script alone.
@@ -47,6 +73,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import json
 import re
 import shutil
@@ -354,8 +381,13 @@ def live_row(corpus: str, data: bytes) -> dict:
 # ---------------------------------------------------------------------------
 # corpus builders
 # ---------------------------------------------------------------------------
-def build_general_english(log=print) -> list:
-    """Copy the 8 pinned #24 texts + download 7 more public-domain novels."""
+def build_general_english(log=print, allow_download: bool = True) -> list:
+    """Copy the 8 pinned #24 texts + download 7 more public-domain novels.
+
+    With ``allow_download=False`` the builder is cache-only: a novel that is
+    not already under ``general_english/`` is skipped with a warning instead
+    of being fetched, and the network is never touched.
+    """
     dest = OUT / "general_english"
     dest.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -384,6 +416,12 @@ def build_general_english(log=print) -> list:
         url = GUTENBERG_URL.format(id=gid)
         if dst.exists():
             data = dst.read_bytes()
+        elif not allow_download:
+            # Cache-only means cache-only: report the gap, never fetch.
+            log(f"[reference_corpora] WARNING: general_english/{name}.txt not "
+                f"cached and --no-download set; skipping (re-run without "
+                f"--no-download to fetch gutenberg {gid})")
+            continue
         else:
             log(f"[reference_corpora] downloading {name} <- gutenberg {gid}")
             data = download(url, dst, log)
@@ -464,13 +502,21 @@ ARXIV_SUMMARY_RE = re.compile(r"<summary>(.*?)</summary>", re.DOTALL)
 def parse_arxiv(data: bytes) -> bytes:
     """The ``<summary>`` bodies of a raw arXiv Atom response, joined.
 
+    Atom escapes abstract text, so each body is run through ``html.unescape``
+    before it becomes corpus text: left raw, ``&amp;`` / ``&rsquo;`` /
+    ``&#39;`` would reach the tokenizer as fake word tokens (``amp``,
+    ``rsquo``, ``quot``) and inflate the counts.  The decode happens *after*
+    the summaries are extracted, so a decoded ``&lt;`` cannot re-enter the
+    markup the regex searches.
+
     Returns b"" when *data* is not an Atom feed (an error page, an empty
     body).  Callers must gate on the token count before writing the result:
     re-running the parse over an already-clean corpus also yields b"", which
     is what made the build non-idempotent.
     """
     text = data.decode("utf-8", errors="replace")
-    abstracts = [a.strip() for a in ARXIV_SUMMARY_RE.findall(text)]
+    abstracts = [html.unescape(a.strip())
+                 for a in ARXIV_SUMMARY_RE.findall(text)]
     return "\n\n".join(abstracts).encode("utf-8")
 
 
@@ -512,8 +558,13 @@ def build_cs(log=print) -> list:
     return [live_row("cs", data)]
 
 
-def build_legal(log=print) -> list:
-    """Download the public-domain legal / political register texts."""
+def build_legal(log=print, allow_download: bool = True) -> list:
+    """Download the public-domain legal / political register texts.
+
+    With ``allow_download=False`` the builder is cache-only: a text that is
+    not already under ``legal/`` is skipped with a warning instead of being
+    fetched, and the network is never touched.
+    """
     dest = OUT / "legal"
     dest.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -522,6 +573,11 @@ def build_legal(log=print) -> list:
         url = GUTENBERG_URL.format(id=gid)
         if dst.exists():
             data = dst.read_bytes()
+        elif not allow_download:
+            log(f"[reference_corpora] WARNING: legal/{name}.txt not cached "
+                f"and --no-download set; skipping (re-run without "
+                f"--no-download to fetch gutenberg {gid})")
+            continue
         else:
             log(f"[reference_corpora] downloading {name} <- gutenberg {gid}")
             data = download(url, dst, log)
@@ -539,13 +595,87 @@ def build_legal(log=print) -> list:
 # ---------------------------------------------------------------------------
 # orchestrator
 # ---------------------------------------------------------------------------
+MANIFEST_HEADER = ["corpus", "file", "source", "license", "author",
+                   "sha256", "bytes", "tokens", "types", "hash_role"]
+DRIFT_FILE = "manifest_drift.tsv"
+
+# Files whose sha256 is an *enforced pin* (checked against PINNED_GENERAL);
+# every other manifest row carries an *observed checksum*.  See the module
+# docstring: the two roles are enforced differently, and the manifest says
+# which is which per row.  Derived from PINNED_GENERAL so the two can never
+# drift apart.
+def pinned_files():
+    return {f"general_english/{name}.txt" for name, *_ in PINNED_GENERAL}
+
+
+def read_manifest(path: Path) -> dict:
+    """Prior manifest rows keyed by ``file``; {} when absent or unreadable."""
+    if not path.exists():
+        return {}
+    out = {}
+    with path.open(encoding="utf-8") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+        for line in fh:
+            if not line.strip():
+                continue
+            row = dict(zip(header, line.rstrip("\n").split("\t")))
+            if row.get("file") and row.get("sha256"):
+                out[row["file"]] = row
+    return out
+
+
+def manifest_drift(rows, prior: dict, log=print) -> list:
+    """Drift between *rows* and the expected pins recorded in *prior*.
+
+    The previously published manifest's sha256 for a file is that file's
+    expected pin.  A rebuild that yields different bytes for it is drift:
+    every instance is returned *and* logged here, before the manifest is
+    rewritten, so a changed corpus can never replace its row silently.
+    """
+    drift = []
+    for row in rows:
+        exp = prior.get(row["file"])
+        if exp is None or exp["sha256"] == row["sha256"]:
+            continue
+        drift.append({
+            "corpus": row["corpus"], "file": row["file"],
+            "expected_sha256": exp["sha256"],
+            "observed_sha256": row["sha256"],
+            "expected_bytes": exp.get("bytes", ""),
+            "observed_bytes": row["bytes"],
+        })
+    for d in drift:
+        log(f"[reference_corpora] DRIFT: {d['file']} "
+            f"{d['expected_sha256'][:12]}... -> {d['observed_sha256'][:12]}... "
+            f"({d['expected_bytes']} -> {d['observed_bytes']} bytes): the "
+            f"expected pin no longer matches the built corpus")
+    return drift
+
+
+def write_drift_report(manifest_path: Path, drift, log=print):
+    """Persist *drift* beside the manifest; clear a stale report when clean."""
+    report = manifest_path.parent / DRIFT_FILE
+    if drift:
+        write_tsv(report,
+                  ["corpus", "file", "expected_sha256", "observed_sha256",
+                   "expected_bytes", "observed_bytes"], drift)
+        log(f"[reference_corpora] {len(drift)} drifted file(s) reported in "
+            f"{report} (the expected pins are preserved there)")
+    else:
+        report.unlink(missing_ok=True)
+
+
 def ensure_corpora(allow_download: bool = True, log=print) -> list:
-    """Assemble every corpus; returns the manifest rows."""
+    """Assemble every corpus; returns the manifest rows.
+
+    ``allow_download=False`` is cache-only for every source: nothing is
+    fetched, and anything not already cached is reported and skipped.
+    """
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
-    rows += build_general_english(log)
+    rows += build_general_english(log, allow_download)
     rows += build_excerpts(log)
-    rows += build_legal(log)
+    rows += build_legal(log, allow_download)
     if allow_download:
         rows += build_medical(log)
         rows += build_cs(log)
@@ -568,10 +698,23 @@ def ensure_corpora(allow_download: bool = True, log=print) -> list:
         toks = fz.EN_WORD_RE.findall(text)
         row["tokens"] = len(toks)
         row["types"] = len({t.lower() for t in toks})
-    write_tsv(OUT / "manifest.tsv",
-              ["corpus", "file", "source", "license", "author",
-               "sha256", "bytes", "tokens", "types"], rows)
-    log(f"[reference_corpora] manifest: {len(rows)} files -> {OUT/'manifest.tsv'}")
+        row["hash_role"] = ("enforced_pin" if row["file"] in pinned_files()
+                            else "observed_checksum")
+    # Pin semantics, enforced: the prior manifest's checksums are the expected
+    # pins for every file it already recorded.  Drift is reported (logged and
+    # written beside the manifest) *before* the manifest is rewritten, and a
+    # file that vanishes from the build is reported too -- neither is silent.
+    manifest_path = OUT / "manifest.tsv"
+    prior = read_manifest(manifest_path)
+    missing = sorted(set(prior) - {r["file"] for r in rows})
+    for rel in missing:
+        log(f"[reference_corpora] WARNING: {rel} was in the previous manifest "
+            f"but is not in this build; its row is dropped from the manifest "
+            f"(expected pin preserved in the prior manifest / drift report)")
+    drift = manifest_drift(rows, prior, log)
+    write_drift_report(manifest_path, drift, log)
+    write_tsv(manifest_path, MANIFEST_HEADER, rows)
+    log(f"[reference_corpora] manifest: {len(rows)} files -> {manifest_path}")
     return rows
 
 
@@ -579,7 +722,9 @@ def main(argv=None):
     global OUT
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--no-download", action="store_true",
-                    help="use only cached corpora; skip live PubMed/arXiv queries")
+                    help="cache-only build: never touch the network; skips the "
+                         "live PubMed/arXiv queries and any general-English or "
+                         "legal Gutenberg text that is not already cached")
     ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args(argv)
     OUT = Path(args.out)

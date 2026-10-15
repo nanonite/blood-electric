@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Regression suite for #56 reference corpora.
 
-Checks the invariants that matter: the manifest structure and provenance, the
-fair-use excerpt files (embedded constants), the corpus sizes, the hash
-verification of the pinned #24 references, the Gutenberg strip rule, and the
-download retry logic.  The live PubMed / arXiv corpora are read from the
-cache built by ``python work/reference_corpora.py``; the suite does not
-re-query them.
+Checks the invariants that matter: the manifest structure and provenance (and
+its ``hash_role`` semantics: enforced pins vs observed checksums with drift
+reporting), the fair-use excerpt files (embedded constants), the corpus
+sizes, the hash verification of the pinned #24 references, the Gutenberg
+strip rule, the download retry logic, and the #80 guarantees -- ``--no-download``
+is cache-only for *every* source (general English and legal included), and
+arXiv summaries are entity-decoded before tokenization.  The live PubMed /
+arXiv corpora are read from the cache built by ``python work/reference_corpora.py``;
+the suite does not re-query them.
 
     python work/test_reference_corpora.py
 """
@@ -14,11 +17,13 @@ import hashlib
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import frequency_zipf as fz
 import reference_corpora as rc
 
 ROOT = rc.ROOT
@@ -31,6 +36,46 @@ def read_tsv(path):
         header = fh.readline().rstrip("\n").split("\t")
         return [dict(zip(header, line.rstrip("\n").split("\t")))
                 for line in fh if line.strip()]
+
+
+@contextmanager
+def patched(**attrs):
+    """Temporarily replace module attributes on ``rc``."""
+    orig = {k: getattr(rc, k) for k in attrs}
+    for k, v in attrs.items():
+        setattr(rc, k, v)
+    try:
+        yield
+    finally:
+        for k, v in orig.items():
+            setattr(rc, k, v)
+
+
+GUT_HEADER = "*** START OF THE PROJECT GUTENBERG EBOOK FAKE ***\n"
+GUT_FOOTER = "*** END OF THE PROJECT GUTENBERG EBOOK FAKE ***\n"
+
+
+def gutenberg_body(n_words=3000, word="word"):
+    """A synthetic Gutenberg download: header + body + footer."""
+    return (GUT_HEADER + " ".join([word] * n_words) + "\n"
+            + GUT_FOOTER).encode("utf-8")
+
+
+def stripped_body(n_words=3000, word="word"):
+    """The same body after the strip rule (what a cached corpus holds)."""
+    return (" ".join([word] * n_words) + "\n").encode("utf-8")
+
+
+def no_network(*_a, **_k):
+    raise AssertionError("cache-only mode must never touch the network")
+
+
+def fake_fetch(url, path, log=print, **_k):
+    """A stand-in download that serves a synthetic Gutenberg body."""
+    data = gutenberg_body()
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_bytes(data)
+    return data
 
 
 class TestExcerpts(unittest.TestCase):
@@ -115,6 +160,225 @@ class TestPinnedReferences(unittest.TestCase):
             got = hashlib.sha256(p.read_bytes()).hexdigest()
             self.assertEqual(got, pinned, f"pinned hash mismatch for {name}")
 
+    def _world(self, tmp):
+        """A tmp OUT + FREQ_CACHE; the pinned source holds *data*."""
+        out, freq = Path(tmp) / "out", Path(tmp) / "freq"
+        freq.mkdir(parents=True)
+        (out / "general_english").mkdir(parents=True)
+        return out, freq
+
+    def test_pinned_hash_mismatch_aborts(self):
+        """#80: enforced_pin means enforced -- a mismatch is never absorbed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq = self._world(tmp)
+            (freq / "pride_and_prejudice.txt").write_bytes(b"tampered bytes")
+            with (patched(OUT=out, FREQ_CACHE=freq),
+                  self.assertRaises(ValueError)):
+                rc.build_general_english(log=lambda m: None)
+
+    def test_pinned_missing_cache_aborts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq = self._world(tmp)
+            with (patched(OUT=out, FREQ_CACHE=freq),
+                  self.assertRaises(FileNotFoundError)):
+                rc.build_general_english(log=lambda m: None)
+
+
+class TestNoDownloadCacheOnly(unittest.TestCase):
+    """#80: --no-download is cache-only for every source, network or not."""
+
+    def _world(self, tmp, extra=("cached_novel", "missing_novel"),
+               legal=("cached_law", "missing_law")):
+        """A minimal pinned + extra-general + legal world under *tmp*."""
+        out, freq = Path(tmp) / "out", Path(tmp) / "freq"
+        freq.mkdir(parents=True)
+        pinned_data = stripped_body(50, "pinned")
+        (freq / "pinned.txt").write_bytes(pinned_data)
+        (out / "general_english").mkdir(parents=True)
+        (out / "legal").mkdir(parents=True)
+        (out / "general_english" / "cached_novel.txt").write_bytes(
+            stripped_body())
+        (out / "legal" / "cached_law.txt").write_bytes(stripped_body())
+        pinned = [("pinned", "An Author", 1,
+                   hashlib.sha256(pinned_data).hexdigest())]
+        extras = [(name, "B Author", i) for i, name in enumerate(extra, 2)]
+        laws = [(name, "C Author", i) for i, name in enumerate(legal, 2)]
+        return out, freq, pinned, extras, laws
+
+    def test_general_english_skips_missing_instead_of_fetching(self):
+        logs = []
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq, pinned, extras, _laws = self._world(tmp)
+            with patched(OUT=out, FREQ_CACHE=freq, PINNED_GENERAL=pinned,
+                         EXTRA_GENERAL=extras, download=no_network):
+                rows = rc.build_general_english(logs.append,
+                                                allow_download=False)
+            names = {r["file"] for r in rows}
+            self.assertIn("general_english/pinned.txt", names)
+            self.assertIn("general_english/cached_novel.txt", names)
+            self.assertNotIn("general_english/missing_novel.txt", names)
+            self.assertTrue(any("missing_novel" in m and "WARNING" in m
+                                for m in logs),
+                            f"the skip must be reported: {logs}")
+
+    def test_general_english_download_mode_still_fetches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq, pinned, extras, _laws = self._world(tmp)
+            with patched(OUT=out, FREQ_CACHE=freq, PINNED_GENERAL=pinned,
+                         EXTRA_GENERAL=extras, download=fake_fetch):
+                rows = rc.build_general_english(log=lambda m: None)
+            names = {r["file"] for r in rows}
+            self.assertIn("general_english/missing_novel.txt", names,
+                          "download mode must still fetch a missing novel")
+
+    def test_legal_skips_missing_instead_of_fetching(self):
+        logs = []
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq, pinned, _extras, laws = self._world(tmp)
+            with patched(OUT=out, FREQ_CACHE=freq, PINNED_GENERAL=pinned,
+                         LEGAL=laws, download=no_network):
+                rows = rc.build_legal(logs.append, allow_download=False)
+            names = {r["file"] for r in rows}
+            self.assertIn("legal/cached_law.txt", names)
+            self.assertNotIn("legal/missing_law.txt", names)
+            self.assertTrue(any("missing_law" in m and "WARNING" in m
+                                for m in logs),
+                            f"the skip must be reported: {logs}")
+
+    def test_legal_download_mode_still_fetches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq, pinned, _extras, laws = self._world(tmp)
+            with patched(OUT=out, FREQ_CACHE=freq, PINNED_GENERAL=pinned,
+                         LEGAL=laws, download=fake_fetch):
+                rows = rc.build_legal(log=lambda m: None)
+            self.assertIn("legal/missing_law.txt", {r["file"] for r in rows})
+
+    def test_end_to_end_no_download_is_network_free_and_idempotent(self):
+        """The whole cache-only build: no network, stable manifest, roles."""
+        logs = []
+        with tempfile.TemporaryDirectory() as tmp:
+            out, freq, pinned, extras, laws = self._world(tmp)
+            (out / "medical").mkdir(parents=True)
+            (out / "medical" / "pubmed_abstracts.txt").write_bytes(
+                stripped_body())
+            with patched(OUT=out, FREQ_CACHE=freq, PINNED_GENERAL=pinned,
+                         EXTRA_GENERAL=extras, LEGAL=laws,
+                         LIVE_FILES={"medical": "medical/pubmed_abstracts.txt"},
+                         LIVE_SOURCES={"medical": ("fake eutils",
+                                                   "open access")},
+                         MIN_TOKENS={"medical": 100, "cs": 100},
+                         download=no_network):
+                rows = rc.ensure_corpora(allow_download=False, log=logs.append)
+                manifest = out / "manifest.tsv"
+                first = manifest.read_bytes()
+                self.assertFalse((out / rc.DRIFT_FILE).exists(),
+                                 "a clean build reports no drift")
+                rows2 = rc.ensure_corpora(allow_download=False,
+                                          log=lambda m: None)
+                self.assertEqual(manifest.read_bytes(), first,
+                                 "a second cache-only rebuild must be "
+                                 "byte-identical")
+            files = {r["file"] for r in rows}
+            self.assertEqual(files, {
+                "general_english/pinned.txt",
+                "general_english/cached_novel.txt",
+                "legal/cached_law.txt", "medical/pubmed_abstracts.txt",
+                *rc.EXCERPTS.keys()})
+            for row in rows:
+                self.assertTrue((out / row["file"]).exists(),
+                                f"manifest names a missing file {row['file']}")
+            roles = {r["file"]: r["hash_role"] for r in rows}
+            self.assertEqual(roles["general_english/pinned.txt"],
+                             "enforced_pin")
+            for f, role in roles.items():
+                if f != "general_english/pinned.txt":
+                    self.assertEqual(role, "observed_checksum", f)
+            self.assertEqual(len(rows), len(rows2))
+
+    def test_main_wires_no_download_flag(self):
+        orig_ensure, orig_out = rc.ensure_corpora, rc.OUT
+        seen = {}
+
+        def _fake_ensure(allow_download=True, log=print):
+            seen["allow_download"] = allow_download
+            return []
+
+        rc.ensure_corpora = _fake_ensure
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                rc.main(["--no-download", "--out", tmp])
+                self.assertFalse(seen["allow_download"])
+                rc.main(["--out", tmp])
+                self.assertTrue(seen["allow_download"])
+        finally:
+            rc.ensure_corpora, rc.OUT = orig_ensure, orig_out
+
+
+class TestManifestPinsAndDrift(unittest.TestCase):
+    """#80: the manifest says what each sha256 means, and drift is reported."""
+
+    def test_manifest_carries_hash_role_column(self):
+        rows = read_tsv(MANIFEST)
+        for col in ("sha256", "hash_role"):
+            self.assertIn(col, rows[0])
+        pinned = {f"general_english/{n}.txt"
+                  for n, *_ in rc.PINNED_GENERAL}
+        for r in rows:
+            want = "enforced_pin" if r["file"] in pinned else "observed_checksum"
+            self.assertEqual(r["hash_role"], want, r["file"])
+
+    def test_drift_is_reported_and_persisted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mpath = Path(tmp) / "manifest.tsv"
+            rc.write_tsv(mpath, ["file", "sha256", "bytes"],
+                         [{"file": "a.txt", "sha256": "a" * 64, "bytes": "10"}])
+            prior = rc.read_manifest(mpath)
+            new = [{"corpus": "x", "file": "a.txt", "sha256": "b" * 64,
+                    "bytes": "12"}]
+            logs = []
+            drift = rc.manifest_drift(new, prior, logs.append)
+            self.assertEqual(len(drift), 1)
+            self.assertEqual(drift[0]["expected_sha256"], "a" * 64)
+            self.assertEqual(drift[0]["observed_sha256"], "b" * 64)
+            self.assertTrue(any("DRIFT" in m for m in logs),
+                            f"drift must be logged: {logs}")
+            rc.write_drift_report(mpath, drift, logs.append)
+            report = Path(tmp) / rc.DRIFT_FILE
+            self.assertTrue(report.exists(), "drift must be persisted")
+            drows = read_tsv(report)
+            self.assertEqual(drows[0]["expected_sha256"], "a" * 64)
+            self.assertEqual(drows[0]["observed_sha256"], "b" * 64)
+            self.assertEqual(drows[0]["expected_bytes"], "10")
+            self.assertEqual(drows[0]["observed_bytes"], "12")
+
+    def test_no_drift_when_pins_hold_and_stale_report_cleared(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mpath = Path(tmp) / "manifest.tsv"
+            row = [{"file": "a.txt", "sha256": "a" * 64, "bytes": "10"}]
+            rc.write_tsv(mpath, ["file", "sha256", "bytes"], row)
+            prior = rc.read_manifest(mpath)
+            logs = []
+            same = [{"corpus": "x", "file": "a.txt", "sha256": "a" * 64,
+                     "bytes": "10"}]
+            self.assertEqual(rc.manifest_drift(same, prior, logs.append), [])
+            self.assertFalse(any("DRIFT" in m for m in logs))
+            report = Path(tmp) / rc.DRIFT_FILE
+            report.write_text("stale\n", encoding="utf-8")
+            rc.write_drift_report(mpath, [], logs.append)
+            self.assertFalse(report.exists(),
+                             "a clean rebuild clears the stale drift report")
+
+    def test_new_file_is_not_drift(self):
+        # A fresh clone has no prior manifest: first-build observations are
+        # not drift, and a file the prior manifest never saw is not either.
+        self.assertEqual(rc.read_manifest(Path("/nonexistent/manifest.tsv")), {})
+        new = [{"corpus": "x", "file": "fresh.txt", "sha256": "c" * 64,
+                "bytes": "3"}]
+        self.assertEqual(rc.manifest_drift(new, {}, lambda m: None), [])
+        self.assertEqual(
+            rc.manifest_drift(new, {"other.txt": {"sha256": "d" * 64}},
+                              lambda m: None), [])
+
 
 class TestGutenbergStrip(unittest.TestCase):
     """The Gutenberg header / footer strip rule matches #24."""
@@ -149,6 +413,54 @@ class TestParseArxiv(unittest.TestCase):
         for body in (b"", b"<html><body>503 Service Unavailable</body></html>",
                      b"not xml at all"):
             self.assertEqual(rc.parse_arxiv(body), b"")
+
+
+class TestParseArxivEntities(unittest.TestCase):
+    """#80: Atom summaries are entity-decoded before they become corpus text.
+
+    arXiv escapes abstract text (``&amp;``, ``&#39;``, ``&lt;``, ...).  Left
+    raw, each escape becomes a fake word token (``amp``, ``rsquo``, ``quot``)
+    in the #24 tokenizer and inflates the counts, so the corpus would carry
+    markup residue as vocabulary.
+    """
+
+    def test_named_and_numeric_entities_are_decoded(self):
+        summary = ("Deep &amp; reinforcement learning &lt;3 &#39;quotes&#39; "
+                   "don&#x2019;t &quot;overfit&quot; &apos;models&apos; "
+                   "GAN&amp;style O&#39;Brien &mdash; end")
+        raw = ATOM.format(summary, "plain second abstract")
+        clean = rc.parse_arxiv(raw.encode("utf-8")).decode("utf-8")
+        self.assertIn("Deep & reinforcement learning <3 'quotes' "
+                      "don\u2019t \"overfit\" 'models' "
+                      "GAN&style O'Brien \u2014 end", clean)
+
+    def test_no_entity_tokens_leak_into_tokenization(self):
+        raw = ATOM.format("R&amp;D isn&#39;t trivial &mdash; 5 &lt; 6 &gt; 1",
+                          "plain second abstract")
+        clean = rc.parse_arxiv(raw.encode("utf-8")).decode("utf-8")
+        tokens = {t.lower() for t in fz.EN_WORD_RE.findall(clean)}
+        for fake in ("amp", "rsquo", "quot", "lt", "gt", "apos", "mdash",
+                     "39", "2019"):
+            self.assertNotIn(fake, tokens,
+                             f"entity residue leaked a token: {fake!r}")
+        self.assertIn("isn't", tokens)
+        self.assertIn("trivial", tokens)
+
+    def test_decode_does_not_re_enter_the_markup(self):
+        # A decoded &lt; must not become a tag the summary regex matches:
+        # extraction happens first, decoding after, so the parse yields
+        # exactly the two summaries even when their text contains tags.
+        raw = ATOM.format("a &lt;summary&gt; b", "c &amp; d")
+        clean = rc.parse_arxiv(raw.encode("utf-8")).decode("utf-8")
+        self.assertEqual(clean, "a <summary> b\n\nc & d")
+
+    def test_plain_text_is_left_unchanged(self):
+        # html.unescape is a no-op on already-decoded text: rebuilds that
+        # re-parse stay stable, and a lone & is not an entity.
+        plain = "a & b 'c' \u2014 d"
+        raw = ATOM.format(plain, "second")
+        clean = rc.parse_arxiv(raw.encode("utf-8")).decode("utf-8")
+        self.assertIn(plain, clean)
 
 
 class TestCorpusGate(unittest.TestCase):
