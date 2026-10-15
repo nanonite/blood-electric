@@ -388,6 +388,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Spectral reading artifact (#67)
 - Seed entity roles from jacket synopsis, verify against text (#59)
 - Intertextual n-gram matching vs Siratori corpus (#57)
 - Self-similarity matrix and loop detection (#54)
