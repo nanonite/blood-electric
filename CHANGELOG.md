@@ -391,6 +391,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Human jury / reader study design (#75)
 - Back-translation harness (#74)
 - Compression test for candidate readings (#68)
 - Spectral reading artifact (#67)
