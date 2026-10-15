@@ -177,6 +177,15 @@ class TestPrimitives(unittest.TestCase):
         reading = rc.Reading("t", "llm", "test", {"a": "x"})
         self.assertEqual(rc.null_streams(reading, ["a"], 3), [])
 
+    def test_rank_nan_takes_the_worst_rank(self):
+        # A missing leg must never win by input position: NaN sorts last and
+        # shares the worst rank with any other NaN (the documented contract).
+        nan = float("nan")
+        self.assertEqual(rc._rank([1.0, 2.0, nan]), [1, 2, 3])
+        self.assertEqual(rc._rank([nan, 5.0, nan, 1.0]), [4, 2, 4, 1])
+        self.assertEqual(rc._rank([nan, nan, nan]), [3, 3, 3])
+        self.assertEqual(rc._rank([3.0, 1.0, 1.0]), [3, 1, 1])
+
     def test_split_ids_disjoint_and_complete(self):
         ids = [str(i) for i in range(100)]
         train, test = rc.split_ids(ids)
@@ -311,8 +320,21 @@ class TestBuildArtifacts(unittest.TestCase):
         self.assertEqual(pops, {"full_book", "sample_63"})
         for pop in pops:
             sub = [r for r in rr if r["population"] == pop]
-            ranks = [float(r["overall_rank"]) for r in sub]
-            self.assertEqual(ranks, sorted(ranks), pop)   # table is sorted
+            # the table is sorted by the primary-leg rank, which is the
+            # verdict rank; the mean-of-three aggregate is secondary
+            ranks = [int(r["rank_description_length"]) for r in sub]
+            self.assertEqual(ranks, sorted(ranks), pop)
+            self.assertEqual(sorted(ranks), list(range(1, len(sub) + 1)), pop)
+
+    def test_ranked_readings_columns(self):
+        # every leg rank is published and the aggregate is labelled, so no
+        # aggregation can silently outvote the declared primary leg
+        for r in rows("ranked_readings"):
+            for col in ("rank_description_length", "rank_fixed_model",
+                        "rank_self_predictability", "mean_rank_three_legs",
+                        "delta_vs_length_control"):
+                self.assertIn(col, r)
+            self.assertGreaterEqual(int(r["rank_description_length"]), 1)
 
     def test_report_contains_required_sections(self):
         rep = _ART["report"]
@@ -321,6 +343,17 @@ class TestBuildArtifacts(unittest.TestCase):
                        "## 6. Verdict", "## 7. What this does and does not show",
                        "not proof that an interpretation is true"):
             self.assertIn(needle, rep)
+
+    def test_report_discloses_the_control_fallback(self):
+        # The primary leg's disclosed limit must be in the report, with the
+        # live-clause counts, not only in the code.
+        rep = _ART["report"]
+        self.assertIn("no subsample", rep)
+        self.assertIn("control fallback", rep)
+        self.assertIn("5,470 of 5,614", rep)
+        # and the sample population is described as 5 clauses, never 25
+        self.assertNotIn("25-clause sample", rep)
+        self.assertNotIn("25 clauses", rep)
 
     def test_report_states_tokenization_and_limits(self):
         rep = _ART["report"]
@@ -354,12 +387,14 @@ class TestProtocolProperties(unittest.TestCase):
         order, by_id = rc.load_clauses()
         ids = order[:60]
         originals = {c: by_id[c]["original"] for c in order}
-        import random as _random
         texts = {}
         for c in ids:
-            words = by_id[c]["original"].split()
+            # subsample on the harness's own word rule (letters runs), not
+            # whitespace chunks, or the planted reading's length is measured
+            # by a different tokenizer than the control's
+            words = rc.WORD_RE.findall(by_id[c]["original"])
             k = max(1, len(words) // 2)
-            idx = sorted(_random.Random(f"del:{c}").sample(range(len(words)),
+            idx = sorted(random.Random(f"del:{c}").sample(range(len(words)),
                                                           min(k, len(words))))
             texts[c] = " ".join(words[i] for i in idx)
         r = rc.Reading("random_deletion", "null", "planted", texts)
@@ -370,13 +405,22 @@ class TestProtocolProperties(unittest.TestCase):
         self.assertEqual(s.control_n_words, s.n_words)
 
     def test_control_matches_word_count(self):
-        # The control is *word*-matched, not char-matched (a reading that
-        # swaps long coinages for short English words gets a char-count
-        # difference, disclosed in the report).  The word invariant must
-        # hold exactly wherever the reading is shorter than its clause.
+        # The control is *word*-matched (letters runs, the harness's one word
+        # rule), not char-matched -- a reading that swaps long coinages for
+        # short English words legitimately changes its char count, and that
+        # is disclosed.  The word invariant must hold exactly wherever the
+        # reading is shorter than its clause.
         for r in rows("controls_and_nulls"):
             self.assertLessEqual(int(r["control_n_words"]),
                                  int(r["reading_n_words"]), r["reading"])
+            n = int(r["n_clauses"])
+            fb = int(r["control_fallback_clauses"])
+            self.assertLessEqual(fb, n, r["reading"])
+            # control_n_words == reading_n_words - excess only on the
+            # clauses that did NOT fall back, so the gap is bounded by the
+            # live clauses' word counts
+            self.assertGreaterEqual(int(r["reading_n_words"])
+                                    - int(r["control_n_words"]), 0)
 
     def test_control_word_matching_is_exact_when_shorter(self):
         order, by_id = rc.load_clauses()
@@ -385,15 +429,26 @@ class TestProtocolProperties(unittest.TestCase):
         for name in ("v3_operators_to_space", "interlinear_gloss"):
             r = next(r for r in rc.build_readings(order, by_id) if r.name == name)
             s = rc.score_reading(r, ids, "full_book", originals, None, [])
-            # the control's word count is the reading's, minus the excess on
-            # clauses where the reading is *longer* than its original (those
-            # clauses fall back to the original in the control)
-            capped = [c for c in rc.covered(r, ids)
-                      if len(r.texts[c].split()) >= len(by_id[c]["original"].split())]
-            self.assertEqual(s.control_n_words,
-                             s.n_words - sum(
-                                 len(r.texts[c].split()) - len(by_id[c]["original"].split())
-                                 for c in capped))
+            # control_n_words = sum(min(reading words, original words)), so
+            # it equals the reading's word count minus the excess on the
+            # clauses where the reading is longer (those fall back)
+            excess = sum(
+                max(0, rc.word_count(r.texts[c]) - rc.word_count(by_id[c]["original"]))
+                for c in rc.covered(r, ids))
+            self.assertEqual(s.control_n_words, s.n_words - excess)
+            # and the fallback count is the count of non-shorter clauses
+            self.assertEqual(
+                s.n_control_fallback,
+                sum(1 for c in rc.covered(r, ids)
+                    if rc.word_count(r.texts[c]) >= rc.word_count(by_id[c]["original"])))
+
+    def test_operator_readings_are_word_count_preserving(self):
+        # The disclosed reason the control is inert for v3/v4: removing
+        # operator characters does not change the letters-word count.
+        order, by_id = rc.load_clauses()
+        same = sum(1 for c in order
+                   if rc.word_count(by_id[c]["v3_space"]) == rc.word_count(by_id[c]["original"]))
+        self.assertEqual(same, 5470)
 
     def test_identity_scores_zero_on_every_delta_leg(self):
         for r in rows("ranked_readings"):
@@ -475,8 +530,25 @@ class TestProtocolProperties(unittest.TestCase):
     def test_ranking_is_a_total_order(self):
         for pop in ("full_book", "sample_63"):
             sub = [r for r in rows("ranked_readings") if r["population"] == pop]
-            ranks = sorted(int(r["rank_length_control"]) for r in sub)
+            # the primary (verdict) rank is a total order over the population
+            ranks = sorted(int(r["rank_description_length"]) for r in sub)
             self.assertEqual(ranks, list(range(1, len(sub) + 1)), pop)
+
+    def test_sample_population_self_rank_is_not_arbitrary(self):
+        # every sample reading lacks the adaptive leg (self_bpc is NaN), so
+        # all of them must share the worst rank on it -- never an arbitrary
+        # order inherited from input position.
+        sub = [r for r in rows("ranked_readings")
+               if r["population"] == "sample_63"]
+        n = len(sub)
+        self.assertTrue(all(r["self_bits_per_char"] == "nan" for r in sub))
+        self.assertEqual({int(r["rank_self_predictability"]) for r in sub}, {n})
+
+    def test_full_book_self_ranks_are_distinct(self):
+        sub = [r for r in rows("ranked_readings")
+               if r["population"] == "full_book"]
+        ranks = [int(r["rank_self_predictability"]) for r in sub]
+        self.assertEqual(sorted(ranks), list(range(1, len(sub) + 1)))
 
     def test_control_never_first_on_length_control_leg(self):
         sub = [r for r in rows("ranked_readings")
@@ -501,11 +573,37 @@ class TestProtocolProperties(unittest.TestCase):
         self.assertLess(float(rr["v3_operators_to_space"]["fixed_model_gain_vs_identity"]),
                         float(rr["v4_operators_to_period"]["fixed_model_gain_vs_identity"]))
 
-    def test_gloss_wins_length_control_leg(self):
-        rr = {r["reading"]: r for r in rows("ranked_readings")
-              if r["population"] == "full_book"}
-        self.assertLess(float(rr["interlinear_gloss"]["delta_vs_length_control"]),
-                        float(rr["v3_operators_to_space"]["delta_vs_length_control"]))
+    def test_gloss_wins_length_control_leg_on_the_full_book(self):
+        # The deliverable's headline comes from the full-book run, so this is
+        # computed on every clause rather than read from the --quick sample
+        # artifacts (on the 511-clause quick sample v3 edges the gloss).
+        order, by_id = rc.load_clauses()
+        originals = {c: by_id[c]["original"] for c in order}
+        _, test_ids = rc.split_ids(order)
+        deltas = {}
+        for name in ("interlinear_gloss", "v3_operators_to_space",
+                     "v4_operators_to_period"):
+            r = next(r for r in rc.build_readings(order, by_id)
+                     if r.name == name)
+            s = rc.score_reading(r, order, "full_book", originals, None, test_ids)
+            deltas[name] = s.delta_vs_control
+        self.assertLess(deltas["interlinear_gloss"], deltas["v3_operators_to_space"])
+        self.assertLess(deltas["v3_operators_to_space"],
+                        deltas["v4_operators_to_period"])
+        # and the three readings all beat the identity control's zero
+        for name, d in deltas.items():
+            self.assertLess(d, 0.0, name)
+
+    def test_primary_verdict_matches_the_primary_leg(self):
+        # The published ranking must be sorted by the declared primary leg,
+        # so the report's verdict can never be outvoted by an aggregate.
+        sub = [r for r in rows("ranked_readings")
+               if r["population"] == "full_book"]
+        top = sub[0]
+        self.assertEqual(int(top["rank_description_length"]), 1)
+        for other in sub[1:]:
+            self.assertLessEqual(float(top["delta_vs_length_control"]),
+                                 float(other["delta_vs_length_control"]))
 
 
 # --------------------------------------------------------------------------

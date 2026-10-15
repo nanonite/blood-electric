@@ -32,15 +32,21 @@ bits/char is therefore a **weak discriminator between readings** (its own
 report says the compression test "cannot be the discriminator between
 readings (#68)").  This harness answers that limitation with three devices:
 
-1. **A length-matched deletion control.**  A reading that merely *drops*
-   words is trivially more compressible.  For every covered clause the
-   control is a deterministic, position-preserving word-subsample of the
-   *original* clause down to the reading's word count, compressed by the
-   identical path.  The control is repeated over ``N_CONTROL_SEEDS``
-   independent subsample seeds and its spread is reported, because a delta
-   read against one lucky control would fake a win.  The reported delta is
-   ``reading - mean(control)``; a reading whose entire gain is deletion
-   scores ~0 there, a reading that genuinely restructures scores negative.
+1. **A length-matched deletion control (the primary leg).**  A reading that
+   merely *drops* words is trivially more compressible.  For every covered
+   clause the control is a deterministic, position-preserving *letters-word*
+   subsample of the *original* clause down to the reading's letters-word
+   count, compressed by the identical path and repeated over
+   ``N_CONTROL_SEEDS`` seeds so its own spread is reported (a delta read
+   against one lucky control would fake a win).  **Limit, disclosed:** a
+   reading with at least as many words as its clause gets no subsample --
+   there is nothing to delete -- and the control is then the original.  The
+   corpus's readings are word-count preserving or expanding far more often
+   than not (operator removal changes the characters *between* words, not
+   the letters), so for v3/v4/gloss the control is the original on ~5,470
+   of 5,614 clauses and the delta reduces toward the raw bits/char delta.
+   The live-clause count is published per reading
+   (``control_fallback_clauses``) rather than assumed.
 2. **A pairing (shuffle) null.**  The reading's clause texts are permuted
    across its covered clause ids with fixed seeds.  The null keeps the text
    multiset and destroys the clause<->reading pairing; a reading whose gain
@@ -72,6 +78,12 @@ Tokenization and units (documented because they are choices, not facts)
   order, case-folded, UTF-8 encoded.  Six #48 compressors (gzip-9, zlib-9,
   bz2-9, lzma-6, zstd-3, zstd-19) are reused from ``compression_mdl`` so the
   numbers reconcile with #48's frozen table.
+* Word count = maximal runs of letters (``WORD_RE``), *not* whitespace
+  chunks.  This is a disclosed choice with teeth: ``str.split()`` counts
+  ``soul/gram`` as one word and ``soul gram`` as two, so an operator-removal
+  reading would look longer than its clause purely because of the
+  tokenizer, and the length control would fall back on every clause for
+  that reason alone.
 * Predictability unit = the **character** (no word tokenizer): a character
   trigram needs no lexicon, cannot be blinded by a reading's orthography,
   and treats a gloss and a source clause by exactly the same ruler.
@@ -95,6 +107,7 @@ import argparse
 import json
 import math
 import random
+import re
 import statistics
 import sys
 from collections import Counter
@@ -134,6 +147,13 @@ PUBLISHED = {
     "n_gloss_rows": 25,         # #63 sampled glosses
     "n_termbase": 49,           # #56 / #65 termbase
 }
+# A "word" for the length control is a maximal run of letters, NOT a
+# whitespace-delimited chunk.  This matters: the readings differ from the
+# source in the *operator characters between* words, and ``str.split()``
+# counts ``soul/gram`` as one chunk but ``soul gram`` as two, which would
+# make an operator-removal reading look longer than its clause purely
+# because of the tokenizer.  Letters-only counting is the disclosed rule.
+WORD_RE = re.compile(r"[A-Za-z]+")
 
 read_tsv = ns.read_tsv
 write_tsv = fz.write_tsv
@@ -232,15 +252,32 @@ def compress_stream(text: str) -> dict[str, dict[str, float]]:
     return out
 
 
+def word_count(text: str) -> int:
+    """Letters-only word count -- the harness's one word tokenization rule.
+
+    See ``WORD_RE``: whitespace chunks would miscount the readings, which
+    differ from the source in the characters *between* words.
+    """
+    return len(WORD_RE.findall(text))
+
+
 def length_matched_control(original: str, n_words: int, rng: random.Random) -> str:
     """Deterministic word-subsample of ``original`` down to ``n_words``.
 
     Position-preserving (the sampled word indices are re-sorted), so the
     control keeps the original's local word order and only loses content --
-    the "deletion" confound, isolated.  A reading shorter than its clause
-    gets no control (control == original), disclosed per row.
+    the "deletion" confound, isolated.
+
+    **Fallback, and it is the common case here:** a reading with *at least*
+    as many words as its clause gets no subsample -- the control *is* the
+    original, because there is nothing to delete.  The readings in this
+    corpus are word-count-preserving by construction (operator removal
+    changes the characters between words, not the letters), so the fallback
+    fires for most clauses of most readings.  ``controls_and_nulls.tsv``
+    publishes the fallback count per reading and section 1 of the report
+    states what the control can and cannot show as a result.
     """
-    words = original.split()
+    words = WORD_RE.findall(original)
     if n_words >= len(words):
         return original
     idx = sorted(rng.sample(range(len(words)), n_words))
@@ -257,7 +294,7 @@ def control_stream(reading: Reading, ids: list[str],
     """
     parts = []
     for c in covered(reading, ids):
-        n_words = len(reading.texts[c].split())
+        n_words = word_count(reading.texts[c])
         rng = random.Random(f"{SEED}:{reading.name}:{c}:{seed_k}")
         parts.append(length_matched_control(originals[c], n_words, rng))
     return "\n".join(parts)
@@ -411,6 +448,7 @@ class Score:
     control_bpc_sd: float = float("nan")
     control_n_chars: int = 0
     control_n_words: int = 0
+    n_control_fallback: int = 0      # clauses where the control == the original
     delta_vs_control: float = float("nan")                   # leg A, primary
     null_bpc_mean: float = float("nan")
     null_bpc_sd: float = float("nan")
@@ -453,7 +491,7 @@ def score_reading(reading: Reading, ids: list[str], population: str,
     s = Score(reading.name, reading.kind, population, len(cov))
     stream = reading_stream(reading, ids)
     s.n_chars = len(stream.casefold())
-    s.n_words = sum(len(reading.texts[c].split()) for c in cov)
+    s.n_words = sum(word_count(reading.texts[c]) for c in cov)
     s.bpc = {k: v["bits_per_char"] for k, v in compress_stream(stream).items()}
 
     # ---- leg A: length-matched deletion control -------------------------
@@ -472,8 +510,14 @@ def score_reading(reading: Reading, ids: list[str], population: str,
         # the control's word count is min(reading words, original words) by
         # construction; recorded so the word-matching is auditable.
         s.control_n_words = sum(
-            min(len(reading.texts[c].split()), len(originals[c].split()))
-            for c in covered(reading, ids))
+            min(word_count(reading.texts[c]), word_count(originals[c]))
+            for c in cov)
+        # clauses where the reading is not shorter, so the control falls back
+        # to the original -- the leg is degenerate for these clauses, and the
+        # count is published so the reader can see how much of the leg is live
+        s.n_control_fallback = sum(
+            1 for c in cov
+            if word_count(reading.texts[c]) >= word_count(originals[c]))
         s.delta_vs_control = s.bpc[key] - s.control_bpc
 
     # ---- leg A: pairing (shuffle) null ----------------------------------
@@ -568,24 +612,48 @@ def paired_sign_test(reading: Reading, test_ids: list[str],
 # ranking
 # --------------------------------------------------------------------------
 def _rank(values: list[float]) -> list[int]:
-    """Competition ranks (1 = best); NaN sorts last, ties share the worst."""
-    order = sorted(range(len(values)),
-                   key=lambda i: (math.isnan(values[i]), values[i]))
-    ranks = [0] * len(values)
-    for pos, i in enumerate(order, 1):
-        ranks[i] = pos
+    """Competition ranks (1 = best); NaN takes the worst rank, as documented.
+
+    A missing leg must never silently win by input order, so a NaN sorts
+    last and shares the worst rank with any other NaN.  When *every* reading
+    in a population lacks a leg, all of them share that worst rank, so the
+    leg contributes a constant and cannot reorder the population.
+    """
+    n = len(values)
+    order = sorted(range(n), key=lambda i: (math.isnan(values[i]), values[i]))
+    ranks = [0] * n
+    pos = 0
+    while pos < n:
+        i = order[pos]
+        if math.isnan(values[i]):
+            ranks[i] = n            # worst rank, shared by every NaN
+            pos += 1
+            continue
+        j = pos
+        while j + 1 < n and not math.isnan(values[order[j + 1]]) \
+                and values[order[j + 1]] == values[i]:
+            j += 1
+        for k in range(pos, j + 1):
+            ranks[order[k]] = pos + 1
+        pos = j + 1
     return ranks
 
 
 def rank_population(scores: list[Score]) -> list[dict]:
-    """Rank readings inside one population on the three protocol legs.
+    """Rank readings inside one population, primary leg first.
 
-    Lower description length is better on every metric, so all three legs
-    rank ascending.  ``overall`` is the mean of the three ranks -- a
-    disclosed aggregation, not a weighted composite (no weights exist that
-    could be justified a priori).  Readings missing a leg (``llm_*`` have no
-    adaptive leg) take the worst rank on it, so they cannot win a population
-    on legs they do not have.
+    **The primary leg is the description-length delta** (``delta_vs_control``):
+    it is the leg that answers the task's question -- does the reading
+    shorten the description of the book? -- with the deletion confound
+    controlled.  Its rank is the verdict rank and sorts the table.  The two
+    predictability legs are corroborating evidence and their ranks are
+    published next to it; ``mean_rank_three_legs`` is a disclosed,
+    *unweighted* aggregate that exists only so the reader can see how the
+    legs disagree, and it never overrides the primary rank.
+
+    Lower is better on every metric, so all three legs rank ascending.  A
+    reading missing a leg (``llm_*`` have no adaptive leg) takes the worst
+    rank on it, so it cannot win a population on legs it does not have.
     """
     keys = ("delta_vs_control", "fixed_gain_vs_identity", "self_bpc")
     ranks = {k: _rank([getattr(s, k) for s in scores]) for k in keys}
@@ -602,12 +670,13 @@ def rank_population(scores: list[Score]) -> list[dict]:
             "fixed_model_gain_vs_identity": round(s.fixed_gain_vs_identity, 6),
             "self_bits_per_char": round(s.self_bpc, 6),
             "null_z": round(s.null_z, 4),
-            "rank_length_control": ranks[keys[0]][i],
+            "rank_description_length": ranks[keys[0]][i],
             "rank_fixed_model": ranks[keys[1]][i],
             "rank_self_predictability": ranks[keys[2]][i],
-            "overall_rank": round(sum(rs) / len(rs), 2),
+            "mean_rank_three_legs": round(sum(rs) / len(rs), 2),
         })
-    rows.sort(key=lambda r: r["overall_rank"])
+    rows.sort(key=lambda r: (r["rank_description_length"],
+                             r["mean_rank_three_legs"]))
     return rows
 
 
@@ -732,13 +801,29 @@ def build_report(ctx: dict) -> str:
       "number on its own. Each reading is scored by three legs that remove "
       "the confounds in turn:\n")
     a("")
-    a("1. **Length-matched deletion control.** For every covered clause the "
-      "control is a deterministic, position-preserving word-subsample of the "
-      "*original* clause down to the reading's word count (seed "
-      f"`{SEED}:<reading>:<clause>`), compressed by the identical path. The "
-      "reported number is ``reading - control``: a reading whose only effect "
-      "is dropping words scores ~0; only restructuring scores negative. "
-      "**This is the leg that carries the verdict.**")
+    a("1. **Length-matched deletion control (the primary leg).** For every "
+      "covered clause the control is a deterministic, position-preserving "
+      "letters-word-subsample of the *original* clause down to the reading's "
+      "letters-word count (seed "
+      f"`{SEED}:<reading>:<clause>:<seed_k>`), compressed by the identical "
+      f"path and repeated over {N_CONTROL_SEEDS} seeds so its own seed noise "
+      "is reported. The number is ``reading - control``: a reading whose only "
+      "effect is dropping words scores ~0, only restructuring scores "
+      "negative. **This is the leg that carries the verdict** (section 6 "
+      "ranks by it), because it is the leg that answers the task's question "
+      "-- does the reading shorten the description of the book? -- with the "
+      "deletion confound controlled. **Its limit is disclosed, not hidden:** "
+      "a reading with at least as many words as its clause gets *no* "
+      "subsample, because there is nothing to delete, and the control is "
+      "then the original itself. The corpus's readings are word-count "
+      "preserving or expanding far more often than not -- operator removal "
+      "changes the characters *between* words, not the letters, so v3/v4/gloss "
+      "match their clause's word count on most clauses -- so for them the "
+      "control is the original on the majority of clauses and the delta "
+      "reduces toward the raw bits/char delta. The live-clause count is "
+      "published per reading in ``controls_and_nulls.tsv`` "
+      "(``control_fallback_clauses``) and section 3 states what the leg can "
+      "and cannot show for each reading as a result.")
     a("2. **Pairing shuffle null.** The reading's clause texts are permuted "
       f"across its covered clause ids ({N_NULLS} permutations, fixed seeds). "
       "The text multiset is preserved and the clause<->text pairing is "
@@ -756,17 +841,21 @@ def build_report(ctx: dict) -> str:
       "against the identity text clause by clause with a sign test (#50's "
       "pattern).\n")
     a("")
-    a("**Tokenization and units.** The unit is the clause (the #33 "
-      "segmentation, 5,614 clauses), so readings are compared on identical "
-      "text spans. The compression stream is the reading's clause texts "
-      "joined by newlines in book order, case-folded, UTF-8; the six #48 "
-      "compressors are reused from ``compression_mdl`` so the numbers "
-      "reconcile with #48's frozen table. Predictability is measured in "
-      "**characters**, with no word tokenizer: a character model cannot be "
-      "blinded by a reading's orthography and applies the same ruler to a "
-      "gloss and a source clause. The held-out split is every 5th clause "
-      "(20 %); clause order is page order, so the held-out set spans all 225 "
-      "pages rather than a contiguous block.\n")
+    a("**Tokenization and units (choices, not facts).** The unit is the "
+      "clause (the #33 segmentation, 5,614 clauses), so readings are compared "
+      "on identical text spans. The compression stream is the reading's "
+      "clause texts joined by newlines in book order, case-folded, UTF-8; the "
+      "six #48 compressors are reused from ``compression_mdl`` so the numbers "
+      "reconcile with #48's frozen table. A **word** is a maximal run of "
+      "letters -- not a whitespace chunk, which would count ``soul/gram`` as "
+      "one word and ``soul gram`` as two and so make an operator-removal "
+      "reading look longer than its clause purely because of the tokenizer. "
+      "Predictability is measured in **characters**, with no word tokenizer "
+      "at all: a character model cannot be blinded by a reading's orthography "
+      "and applies the same ruler to a gloss and a source clause. The "
+      "held-out split is every 5th clause (20 %); clause order is page order, "
+      "so the held-out set spans 219 of 225 pages rather than a contiguous "
+      "block.\n")
     a("")
 
     # ---- readings ----
@@ -787,27 +876,44 @@ def build_report(ctx: dict) -> str:
     # ---- leg A ----
     a("## 3. Leg A: description length and its controls\n")
     a("")
-    a("| reading | gzip-9 bits/char | vs length control | control sd | null mean | null z | chars | words |")
-    a("|---|---:|---:|---:|---:|---:|---:|---:|")
+    a("| reading | gzip-9 bits/char | vs length control | control sd | control fallback | null mean | null z | chars | words |")
+    a("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
     for s in fb + sm:
         a(f"| `{s.reading}` | {_fmt(s.bpc.get(PRIMARY_COMPRESSOR))} | "
           f"{_fmt(s.delta_vs_control)} | {_fmt(s.control_bpc_sd)} | "
+          f"{s.n_control_fallback}/{s.n_clauses} | "
           f"{_fmt(s.null_bpc_mean)} | "
           f"{_fmt(s.null_z, 3)} | {s.n_chars} | {s.n_words} |")
     a("")
-    a("The ``vs length control`` column is the compression verdict: negative "
-      "means the reading compresses better than an equally short word-sample "
-      "of the original, i.e. it restructured the text rather than merely "
-      "deleting it. The control is repeated over "
-      f"{N_CONTROL_SEEDS} independent subsample seeds and ``control sd`` is "
-      "their spread: on the full book it is ~3e-4 bits/char, so the "
-      "full-book deltas below are two orders of magnitude larger than the "
-      "control's own seed noise. On the 25-clause sample the same control "
-      "carries ~0.1 bits/char of seed noise, which is why the sample "
-      "population is reported descriptively and never ranked against the "
-      "full book. ``null_z`` compares the reading with its own permuted "
-      "pairings: values near 0 mean the gain does not depend on the "
-      "clause<->text pairing.\n")
+    a("``control fallback`` is the count of covered clauses where the reading "
+      "has at least as many words as its clause, so the control *is* the "
+      "original and no subsample happens -- the leg is degenerate on those "
+      "clauses. For the full-book readings that is the overwhelming majority "
+      "(v3/v4 match their clause's word count on 5,470 of 5,614 clauses; the "
+      "gloss on 5,479), because operator removal changes the characters "
+      "between words, not the letters. **So for the three operator/gloss "
+      "readings the primary leg is, in practice, the raw bits/char delta "
+      "against the identity stream -- a length-normalized comparison, but not "
+      "a length-matched one.** The honest reading of the column is therefore: "
+      "these readings do not win by deleting, because there is almost nothing "
+      "to delete; the control demonstrates that rather than manufactures a "
+      "correction. Where the control is live (the ~75 shorter gloss clauses, "
+      "and any reading a future pipeline produces that shortens) the "
+      "word-matching is exact and the delta is a true restructuring "
+      "measure.\n")
+    a("")
+    a("``control sd`` is the spread of the control over its "
+      f"{N_CONTROL_SEEDS} seeds. On the full book it is ~3e-4 bits/char, so "
+      "the full-book deltas sit two orders of magnitude above the control's "
+      "own noise. On the 5-clause sample it is 0.0000 for almost every row "
+      "-- and that is not precision, it is the fallback again: for four of "
+      "the five LLM strategies *every* covered clause falls back, so all "
+      "seeds produce the identical stream and the sd is exactly zero (the "
+      "exception is ``llm_scene_summary``, with one genuinely shorter clause "
+      "and an sd of ~0.04). The sample population is reported descriptively "
+      "and never ranked against the full book. ``null_z`` compares the "
+      "reading with its own permuted pairings: values near 0 mean the gain "
+      "does not depend on the clause<->text pairing.\n")
     a("")
 
     # ---- leg C ----
@@ -891,34 +997,50 @@ def build_report(ctx: dict) -> str:
     # ---- ranking ----
     a("## 6. Verdict: the ranked readings\n")
     a("")
+    a("**The primary leg is the description-length delta**, so the table is "
+      "sorted by ``rank_description_length`` and that rank *is* the verdict. "
+      "The two predictability legs are corroborating evidence, ranked beside "
+      "it; ``mean_rank_three_legs`` is an unweighted, disclosed aggregate "
+      "published only so the reader can see where the legs disagree -- it "
+      "never overrides the primary rank.\n")
+    a("")
     a("Full-book population (all clauses, lower is better on every leg):\n")
     a("")
-    a("| rank | reading | length-control delta | fixed-model gain | self bits/char | null z |")
-    a("|---:|---|---:|---:|---:|---:|")
+    a("| rank (primary) | reading | length-control delta | fixed-model rank | self rank | mean of 3 | null z |")
+    a("|---:|---|---:|---:|---:|---:|---:|")
     for r in ranked_fb:
-        a(f"| {r['overall_rank']:.1f} | `{r['reading']}` | "
+        a(f"| {r['rank_description_length']} | `{r['reading']}` | "
           f"{_fmt(r['delta_vs_length_control'])} | "
-          f"{_fmt(r['fixed_model_gain_vs_identity'])} | "
-          f"{_fmt(r['self_bits_per_char'])} | {_fmt(r['null_z'], 3)} |")
+          f"{r['rank_fixed_model']} | {r['rank_self_predictability']} | "
+          f"{r['mean_rank_three_legs']:.2f} | {_fmt(r['null_z'], 3)} |")
     a("")
     if ranked_fb:
         w = ranked_fb[0]
-        a(f"**`{w['reading']}` ranks first overall** "
-          f"(mean rank {w['overall_rank']:.2f} across the three legs). The "
-          "legs do not agree perfectly, and the split is the finding: the "
-          "``interlinear_gloss`` line wins the pure description-length leg "
-          "(most negative length-control delta), while ``v3_operators_to_space`` "
-          "wins both predictability legs. A reading that only rewrites "
-          "orthography is the more predictable one; a reading that also "
-          "substitutes the termbase is the more compressible one. Sample "
-          "population (#63's 5-clause stratified sample):\n")
+        w_fixed = next((r["reading"] for r in ranked_fb
+                        if r["rank_fixed_model"] == 1), "n/a")
+        w_self = next((r["reading"] for r in ranked_fb
+                       if r["rank_self_predictability"] == 1), "n/a")
+        a(f"**`{w['reading']}` wins the declared primary leg** and is "
+          "therefore the reading that most shortens the description of the "
+          "book under this protocol. The predictability legs are won by "
+          f"`{w_fixed}` (fixed model) and `{w_self}` (self). ")
+        if w_fixed == w_self == w["reading"]:
+            a("On this run one reading leads on every leg.\n")
+        else:
+            a("The legs disagree, and the disagreement is the finding "
+              "rather than a defect: a reading that rewrites orthography "
+              "alone is the more *predictable* one, while a reading that "
+              "also substitutes the termbase is the more *compressible* "
+              "one. Because no leg is a fidelity instrument, neither winner "
+              "is certified as *the* reading. Sample population (#63's "
+              "5-clause stratified sample):\n")
     else:
         a("No full-book population was scored.\n")
     a("")
-    a("| rank | reading | length-control delta | fixed-model gain |")
+    a("| rank (primary) | reading | length-control delta | fixed-model gain |")
     a("|---:|---|---:|---:|")
     for r in ranked_sm:
-        a(f"| {r['overall_rank']:.1f} | `{r['reading']}` | "
+        a(f"| {r['rank_description_length']} | `{r['reading']}` | "
           f"{_fmt(r['delta_vs_length_control'])} | "
           f"{_fmt(r['fixed_model_gain_vs_identity'])} |")
     a("")
@@ -931,10 +1053,16 @@ def build_report(ctx: dict) -> str:
       "corpus cheaper to describe; that is a property of the text it "
       "produces, not a certificate of fidelity. #63's checks and #64's "
       "disagreement log remain the fidelity instruments.")
-    a("- **A shorter gloss always looks more compressible.** That is exactly "
-      "why the primary leg is the length-matched control, not raw bits/char. "
-      "A reading that deletes *at random* is pinned near zero there; "
-      "structured deletion is the disclosed exception below.")
+    a("- **The primary leg is a length-matched control that is mostly inert "
+      "on this corpus.** It subsamples only where a reading is *shorter* "
+      "than its clause; the readings here are word-count preserving or "
+      "expanding on ~5,470 of 5,614 clauses (v3/v4/gloss), so for them the "
+      "control is the original and the delta is effectively the raw bits/char "
+      "delta. What the control does establish is that these readings win "
+      "without deleting -- there is almost nothing to delete -- and it "
+      "remains exact for any future reading that shortens (the ~75 shorter "
+      "gloss clauses are live, and the word-matching is exact there). The "
+      "per-reading live-clause counts are in ``controls_and_nulls.tsv``.")
     a("- **The control neutralises *arbitrary* deletion, not *structured* "
       "deletion.** A reading that keeps only each clause's first word is a "
       "pure deletion, yet it beats its random-word control (the book's "
@@ -966,7 +1094,8 @@ def build_report(ctx: dict) -> str:
       "is descriptive only. Read on that sample, the two legs point in "
       "opposite directions and the opposition is the point: ``llm_plain_english`` "
       "wins the description-length leg by a wide margin (-1.05 bits/char "
-      "against its length control) while being the *least* predictable of all "
+      "against its control, which falls back to the original on all five of "
+      "its clauses) while being the *least* predictable of all "
       "nine readings under the book-trained model (+0.96 bits/char). Plain "
       "English is a cheap description of the book's content and a poor "
       "predictor of its surface. **A harness that reported only the "
@@ -1124,8 +1253,9 @@ def main(argv=None):
               ["reading", "population", "length_control_bits_per_char",
                "length_control_sd_bits_per_char", "delta_vs_length_control",
                "null_mean_bits_per_char", "null_sd_bits_per_char", "null_z",
-               "reading_n_words", "control_n_words", "control_n_chars",
-               "reading_n_chars"],
+               "reading_n_words", "control_n_words",
+               "control_fallback_clauses", "n_clauses",
+               "control_n_chars", "reading_n_chars"],
               [{"reading": s.reading, "population": s.population,
                 "length_control_bits_per_char": round(s.control_bpc, 6),
                 "length_control_sd_bits_per_char": round(s.control_bpc_sd, 6),
@@ -1135,6 +1265,8 @@ def main(argv=None):
                 "null_z": round(s.null_z, 4),
                 "reading_n_words": s.n_words,
                 "control_n_words": s.control_n_words,
+                "control_fallback_clauses": s.n_control_fallback,
+                "n_clauses": s.n_clauses,
                 "control_n_chars": s.control_n_chars,
                 "reading_n_chars": s.n_chars}
                for s in scores_full + scores_sample])
@@ -1165,8 +1297,9 @@ def main(argv=None):
               ["reading", "population", "kind", "n_clauses",
                "bits_per_char_gzip9", "delta_vs_length_control",
                "fixed_model_gain_vs_identity", "self_bits_per_char",
-               "null_z", "rank_length_control", "rank_fixed_model",
-               "rank_self_predictability", "overall_rank"], ranked_rows)
+               "null_z", "rank_description_length", "rank_fixed_model",
+               "rank_self_predictability", "mean_rank_three_legs"],
+              ranked_rows)
 
     write_tsv(out_dir / "reconciliation.tsv",
               ["quantity", "earlier", "here", "note"], recon)
@@ -1216,8 +1349,7 @@ def main(argv=None):
                             "sign_test_p": round(s.sign_test_p, 8)}
                            for s in scores_full + scores_sample],
         "ranked_full_book": ranked_full,
-        "ranked_sample": ranked_sample,
-        "english_anchor_bits_per_char": round(anchor, 6),
+        "ranked_sample": ranked_sample,        "english_anchor_bits_per_char": round(anchor, 6),
         "reconciliation": recon,
     }
     (out_dir / "summary.json").write_text(
@@ -1228,10 +1360,11 @@ def main(argv=None):
     log(f"[#68] wrote {out_dir} (schema {SCHEMA})")
     if ranked_full:
         w = ranked_full[0]
-        log(f"[#68] verdict: {w['reading']} ranks first overall "
-            f"(mean rank {w['overall_rank']:.2f}; length-control delta "
-            f"{w['delta_vs_length_control']:.6f}, fixed-model gain "
-            f"{w['fixed_model_gain_vs_identity']:.6f})")
+        log(f"[#68] verdict: {w['reading']} wins the primary "
+            f"description-length leg (rank {w['rank_description_length']}, "
+            f"delta {w['delta_vs_length_control']:.6f}; fixed-model rank "
+            f"{w['rank_fixed_model']}, self rank "
+            f"{w['rank_self_predictability']})")
     return 0
 
 
