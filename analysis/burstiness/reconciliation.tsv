@@ -1,0 +1,23 @@
+check	expected	actual	status	note
+screened entity stream reproduces #30's count	74077	74077	ok	#27/#30 screen
+entities located exactly	98	98	ok	located n == #30 n_occurrences per row
+entity mentions	2452	2452	ok	sum of located positions
+growth stream reproduces #24's screen	74318	74318	ok	347 markup removals
+heaps beta vs #24 fits.tsv [book_units]	0.6027163544895242	0.6027163544895244	ok	same estimator, same screen, same order
+heaps beta vs #24 fits.tsv [book_units_lower]	0.5978514634851779	0.5978514634851774	ok	same estimator, same screen, same order
+heaps beta vs #24 fits.tsv [book_parts]	0.49900684915446136	0.4990068491544617	ok	same estimator, same screen, same order
+heaps beta vs #24 fits.tsv [book_english]	0.5018273106024956	0.5018273106024962	ok	same estimator, same screen, same order
+heaps beta vs #24 fits.tsv [book_nonenglish]	0.8177692994408011	0.8177692994408005	ok	same estimator, same screen, same order
+heaps beta vs #24 fits.tsv [book_coinage]	0.8352054911126816	0.8352054911126797	ok	same estimator, same screen, same order
+heaps beta vs #24 fits.tsv [book_ocr]	0.5698682928135017	0.5698682928135015	ok	same estimator, same screen, same order
+english mean beta vs #24 fits.tsv [en_mean]	0.6366396673059579	0.6366396673059574	ok	mean of the matched-N refits
+matched N vs #24 english_baseline [pride_and_prejudice]	74318	74318	ok	matched-N prefix
+matched N vs #24 english_baseline [moby_dick]	74318	74318	ok	matched-N prefix
+matched N vs #24 english_baseline [frankenstein]	74318	74318	ok	matched-N prefix
+matched N vs #24 english_baseline [dracula]	74318	74318	ok	matched-N prefix
+matched N vs #24 english_baseline [sherlock_holmes]	74318	74318	ok	matched-N prefix
+matched N vs #24 english_baseline [heart_of_darkness]	38774	38774	ok	matched-N prefix
+matched N vs #24 english_baseline [dorian_gray]	74318	74318	ok	matched-N prefix
+matched N vs #24 english_baseline [ulysses]	74318	74318	ok	matched-N prefix
+book growth curve monotone	ascending	ascending	ok	cumulative type count
+entity locate deltas	0	0	ok	none

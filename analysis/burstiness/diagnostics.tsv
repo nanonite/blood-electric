@@ -1,0 +1,20 @@
+item	value	note
+schema	burstiness-heaps/1	burstiness-heaps artifact schema
+seed	53	null draws seeded SEED + crc32(term)
+nulls_per_entity	200	relocation draws for the burst test
+fano_windows	100|500|1000	non-overlapping window widths (tokens)
+min_windows	20	a Fano factor needs >= this many windows
+min_n	8	recurrence floor for the burstiness table
+segments	5	equal token segments for the novelty table
+p_level	0.05	one-sided burstiness significance
+b_level	0.0	B must exceed this for a bursty verdict
+jackknife	on	leave-one-group-out beta uncertainty (pages for the book, 1000-token blocks for references)
+stream_growth_n	74318	#24 screen (347 markup removals) -- growth layer
+stream_entity_n	74077	#27/#30 screen (588 markup removals) -- entity layer
+screen_delta	241	tag-run furniture the general detector removes and #19 does not list
+entities	98	#30 glossary rows (accepted entities)
+entity_mentions	2452	located occurrences, summed over glossary rows
+entity_growth_points	40	checkpoints for the entity-layer Heaps fit
+entity_locate_deltas	0	rows whose located count != #30 n_occurrences
+english_refs_loaded	8	pinned #24 references at matched N
+entity_channel_positions	1988	distinct token positions covered by any entity (overlapping entities counted once)
