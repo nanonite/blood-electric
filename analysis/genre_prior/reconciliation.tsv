@@ -1,0 +1,9 @@
+item	expected	observed	source	ok
+book_parts_total	80363	80363	#56 keyness/summary.json	y
+book_kept_tokens	79770	79770	#56 keyness/summary.json	y
+book_types	3683	3683	#56 keyness/summary.json	y
+clause_count	5614	5614	#33 clauses/summary.json	y
+parts_assigned_to_clauses	79770	79770	#33 clause partition (char-span containment)	y
+parts_unassigned	0	0	every kept part lands in exactly one clause	y
+intertext_ledger_marks_priors_not_acquired	y	y	#57 analysis/intertext/sources.tsv	y
+quick_build	n	n	mode flag	skip

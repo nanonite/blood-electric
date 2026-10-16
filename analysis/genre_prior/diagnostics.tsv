@@ -1,0 +1,7 @@
+check	value	detail
+families_declared	13	declared before measurement
+families_absent_from_book	0	none
+prior_works_not_ingested	7	of 10 prior works; the ingested rows are #56's excerpt corpus, not this module's acquisition
+expectations_underdetermined	2	BG4,BT4
+clause_parts_unassigned	0	kept parts that land in no #33 clause (must be 0)
+quick_build	n	quick caps the technical registers (medical/cs/legal) at 5,000 tokens; general English and every book-side number are mode-invariant, so every verdict is too

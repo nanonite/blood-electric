@@ -1,0 +1,14 @@
+family	book_occurrences	book_types	book_density_per_1k	top_types	example	example_word	general_english_per_1k	ratio_vs_general_english	general_english_expected	poisson_z_vs_general_english	medical_per_1k	cs_per_1k	legal_per_1k	cyberpunk_per_1k	cutup_surrealist_per_1k	finnegans_wake_per_1k	verdict
+corporate	59	4	0.74	sato:29;corporation:27;syndicate:2;corp:1	p2:218	corporation	0.17	4.35	13.6	12.3	0.55	0.019	0.117	0.0	0.0	0.0	thin
+digital	1507	33	18.892	circuit:220;digital:197;channel:180;code:148;cyber:146;hologram:144	p1:160	cyberpunk	0.311	60.71	24.8	297.5	6.891	6.841	0.228	19.048	0.0	0.0	present
+machine	1688	22	21.161	machine:604;drone:271;mechanism:263;device:187;android:78;exoskeleta:59	p3:17	machine	0.264	80.16	21.1	363.3	2.594	3.775	0.157	0.0	0.0	0.0	present
+metal	114	7	1.429	metal:93;copper:8;chrome:6;scrapped:3;steel:2;wire:1	p5:733	copper	0.33	4.32	26.4	17.1	0.221	0.087	0.066	0.0	0.0	0.0	thin
+organ	1490	18	18.679	brain:511;flesh:409;organ:290;heart:87;entrails:69;tissue:41	p4:292	flesh	0.945	19.77	75.4	163.0	4.168	0.078	0.243	0.0	0.0	0.0	present
+clinical	560	13	7.02	serum:239;nerve:132;sutured:104;fracture:31;syndrome:26;suture:16	p4:222	inoculation	0.155	45.21	12.4	155.6	12.353	1.436	0.051	0.0	0.0	0.0	present
+reproduction	2616	28	32.794	boy:372;embryo:335;fecundates:293;gene:229;chromosome:224;genome:207	p4:47	chromosome	0.607	53.99	48.5	368.8	1.484	0.378	0.263	0.0	0.0	0.0	present
+grotesque	951	22	11.922	cadaver:633;mutant:141;grotesque:99;mutants:21;decay:13;aberration:9	p4:563	cadaver	0.248	48.1	19.8	209.4	0.087	0.194	0.362	0.0	0.0	0.0	present
+virus	650	15	8.148	disease:210;parasite:185;parasitic:79;virus:71;infected:42;infectious:24	p4:1030	infectious	0.058	139.56	4.7	299.0	9.867	0.097	0.06	0.0	17.857	0.0	present
+transformation	523	37	6.556	sutured:104;streaming:54;mutated:37;excoriate:36;mutation:35;excoriates:31	p4:601	liquefied	0.182	36.03	14.5	133.5	0.353	1.494	0.14	0.0	0.0	0.0	present
+sexual	778	24	9.753	desire:275;love:107;vamp:91;ecstasy:65;sperm:43;sexual:38	p4:167	nude	0.993	9.82	79.2	78.5	0.426	0.01	0.479	0.0	0.0	0.0	thin
+violence	1759	39	22.051	murder:624;assassin:179;crucified:178;rape:148;murderous:131;torture:62	p3:25	kills	0.554	39.8	44.2	257.9	0.021	0.01	0.168	0.0	0.0	0.0	present
+city	284	2	3.56	city:283;population:1	p4:571	city	0.665	5.36	53.0	31.7	1.013	0.136	0.271	0.0	0.0	0.0	thin
