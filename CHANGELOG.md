@@ -433,6 +433,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Genre/prior dossier (#60)
 - Burstiness and Heaps' law (#53)
 - Analogy and metaphor mining (#45)
 - Harden corpus cache reproducibility and text normalization (#80)
