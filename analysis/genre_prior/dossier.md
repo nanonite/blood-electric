@@ -1,6 +1,6 @@
 # Genre/prior dossier: what the priors expect, and what the corpus measures (#60)
 
-Generated: 2026-10-16 16:43 UTC
+Generated: 2026-10-16 16:56 UTC
 
 L7.5 of `docs/meaning-extraction-methods.md` names the priors this dossier is built from -- cyberpunk, *Tetsuo: The Iron Man*, Ballard, Aase Berg, Blake Butler, text-virus/codework poetics -- and says what they are for: *they set expectations for the kind of meaning present*. L7's governing rule sits above that line: external material is a **prior, not the object of study**; it is used to disambiguate, never to ventriloquize.
 
@@ -108,7 +108,7 @@ Top types per family: **corporate**: sato:29, corporation:27, syndicate:2, corp:
 | formula_density | #57 | 25,969 recurring phrase formulas (n>=2, freq>=2) | >= 20000 book formulas (n>=2, freq>=2) on the #17 word-part layer | **present** |
 | self_similarity | #54 | band z: lag10 28.52, lag100 20.15, max 33.69 | z at lag 10 or 100 paragraphs >= 10 | **present** |
 | operator_surface | #13 + #33 | 10,949 operator tokens over 77,392 words (14.1%); 5,773 clause-boundary operators | operator tokens / word tokens >= 0.10 | **present** |
-| neologism_coinage | #19 | 74 true coinages over 338 occurrences; 2,216 compound types | coinage types >= 40 and occurrences >= 100 | **present** |
+| neologism_coinage | #19 | 51 true coinages over 338 occurrences; 74 coinage+proper-noun types; 2,216 compound types | true-coinage types >= 40 and occurrences >= 100 | **present** |
 | case_emphasis | #22 | caps layer: scream 263, label 1138, function 453 (share of words 2.44%) | scream >= 100 and scream+label+function >= 500 | **present** |
 | cyberpunk_arm | #56 + #57 | the cyberpunk arm is 105 tokens (< 10,000); it shares 13 book n-gram types (n>=2) and is a bound, not a test -- #56's own rule | (not an expectation) reported as context; inferential only at >= 10,000 tokens | **underdetermined** |
 
@@ -362,7 +362,7 @@ The machine-readable `observed` values are in `artifact_probes.tsv` and `summary
 
 *Why the prior expects it.* Codework and asemic writing expect machine-coined, non-dictionary surfaces as a visible layer of the text.
 
-*Probe `artifact:neologism_coinage`.* 74 true coinages over 338 occurrences; 2,216 compound types
+*Probe `artifact:neologism_coinage`.* 51 true coinages over 338 occurrences; 74 coinage+proper-noun types; 2,216 compound types
 
 *Annotation.* A true-coinage layer exists outside the dictionary, with thousands of compound types beside it (#19). The asemic surface is a measured layer, not a reading impression.
 

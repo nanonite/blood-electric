@@ -17,7 +17,9 @@ Checks the invariants that matter:
     must come out thin, a pair below the z gate must come out thin, a
     zero-occurrence family must come out absent);
   * the artifact probes read the frozen artifacts and apply their declared
-    rules (a planted summary must flip the rule both ways);
+    rules: a planted-summary registry (``RULE_CASES``) flips **every**
+    registered probe's rule in both directions, and a coverage test fails
+    the build if a probe is ever added without its planted cases;
   * a full (quick) build writes every artifact, reports the same book-side
     numbers as the full build (mode-invariance of every verdict), is
     deterministic on rerun, and its report numbers agree with the tables it
@@ -369,67 +371,6 @@ class TestArtifactProbes(unittest.TestCase):
             self.assertTrue(row["rule"], key)
             self.assertTrue(row["detail"], key)
 
-    def test_affect_probe_rule_both_ways(self):
-        base = json.loads((ROOT / "analysis/affect/summary.json")
-                          .read_text(encoding="utf-8"))
-        row = gp.probe_affect_margins()
-        self.assertEqual(row["verdict"], "present")
-        # planted: one margin collapses -> thin
-        broken = json.loads(json.dumps(base))
-        broken["classifier"]["margins"]["ecstasy"]["z"] = 0.5
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=broken):
-            row2 = gp.probe_affect_margins()
-        self.assertEqual(row2["verdict"], "thin")
-        broken["classifier"]["margins"]["disgust"]["z"] = 0.5
-        broken["classifier"]["margins"]["fear"]["z"] = 0.5
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=broken):
-            row3 = gp.probe_affect_margins()
-        self.assertEqual(row3["verdict"], "absent")
-
-    def test_parse_probe_rule_both_ways(self):
-        row = gp.probe_parse_derangement()
-        self.assertEqual(row["verdict"], "present")
-        flat = {"headline": {"v5_frac_parseable": 0.80,
-                             "english_frac_parseable": 0.7846,
-                             "null_frac_parseable": 0.4165}}
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=flat):
-            self.assertEqual(gp.probe_parse_derangement()["verdict"], "absent")
-        noise = {"headline": {"v5_frac_parseable": 0.40,
-                              "english_frac_parseable": 0.7846,
-                              "null_frac_parseable": 0.4165}}
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=noise):
-            self.assertEqual(gp.probe_parse_derangement()["verdict"], "thin")
-
-    def test_formula_probe_rule_both_ways(self):
-        self.assertEqual(gp.probe_formula_density()["verdict"], "present")
-        thin = {"formula_classes": {"a": 3000, "b": 3000}}
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=thin):
-            self.assertEqual(gp.probe_formula_density()["verdict"], "thin")
-        none = {"formula_classes": {"a": 10}}
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=none):
-            self.assertEqual(gp.probe_formula_density()["verdict"], "absent")
-
-    def test_operator_probe_rule_both_ways(self):
-        row = gp.probe_operator_surface()
-        self.assertEqual(row["verdict"], "present")
-        self.assertGreaterEqual(row["observed"]["operator_share"], 0.10)
-        low = {"operator_tokens": 5000, "lexemes_baseline": 77392,
-               "boundary_tokens": 100}
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=low):
-            self.assertEqual(gp.probe_operator_surface()["verdict"], "thin")
-        tiny = {"operator_tokens": 100, "lexemes_baseline": 100000,
-                "boundary_tokens": 100}
-        with unittest.mock.patch.object(gp, "_load_summary",
-                                        return_value=tiny):
-            self.assertEqual(gp.probe_operator_surface()["verdict"], "absent")
-
     def test_cyberpunk_context_row_is_underdetermined(self):
         row = gp.probe_cyberpunk_arm()
         self.assertEqual(row["verdict"], "underdetermined")
@@ -569,6 +510,130 @@ class TestBuild(unittest.TestCase):
         self.assertEqual(self.summary["priors_not_ingested"],
                          sum(1 for p in gp.PRIORS
                              if p.authorization in gp.itx.NON_INGESTIBLE))
+
+
+def _affect(fear, ecstasy, paranoia, disgust):
+    """A planted #44 affect summary with the four z-scores given."""
+    return {"classifier": {"margins": {
+        k: {"z": z, "margin": z / 100.0, "book_mean": 0.2 + z / 1000.0,
+            "english_mean": 0.2}
+        for k, z in (("fear", fear), ("ecstasy", ecstasy),
+                     ("paranoia", paranoia), ("disgust", disgust))}}}
+
+
+#: planted artifact summaries and the verdict each must produce, keyed by
+#: probe.  Every entry of ``gp.ARTIFACT_PROBES`` -- plus the ``cyberpunk_arm``
+#: context row -- must appear here, so an added probe without a two-way rule
+#: test fails the build instead of quietly resting on the live artifacts.
+#: A multi-read probe's cases list one summary per ``_load_summary`` call, in
+#: call order (``roles_predicates`` reads #66 then #59).
+RULE_CASES: dict = {
+    "roles_named_world": [
+        ({"verdicts": {"R3": "evidenced", "R4": "evidenced",
+                       "R5": "evidenced"},
+          "role_status": {"refuted": 0}}, "present"),
+        ({"verdicts": {"R3": "evidenced", "R4": "refuted", "R5": "refuted"},
+          "role_status": {"refuted": 2}}, "thin"),
+        ({"verdicts": {"R3": "refuted", "R4": "refuted", "R5": "refuted"},
+          "role_status": {"refuted": 3}}, "absent"),
+    ],
+    "roles_predicates": [
+        ([{"events": 4829},
+          {"role_status": {"refuted": 1, "uncertain": 2}}], "thin"),
+        ([{"events": 4829},
+          {"role_status": {"refuted": 0, "uncertain": 0}}], "present"),
+        ([{"events": 900},
+          {"role_status": {"refuted": 1, "uncertain": 0}}], "absent"),
+    ],
+    "affect_margins": [
+        (_affect(11.07, 22.63, 6.96, 14.7), "present"),
+        (_affect(11.07, 22.63, 6.96, 0.5), "thin"),
+        (_affect(0.5, 0.5, 0.5, 0.5), "absent"),
+    ],
+    "parse_derangement": [
+        ({"headline": {"v5_frac_parseable": 0.5208,
+                       "english_frac_parseable": 0.7847,
+                       "null_frac_parseable": 0.4165}}, "present"),
+        ({"headline": {"v5_frac_parseable": 0.40,
+                       "english_frac_parseable": 0.7847,
+                       "null_frac_parseable": 0.4165}}, "thin"),
+        ({"headline": {"v5_frac_parseable": 0.80,
+                       "english_frac_parseable": 0.7847,
+                       "null_frac_parseable": 0.4165}}, "absent"),
+    ],
+    "formula_density": [
+        ({"formula_classes": {"author_idiolect": 116, "book_unique": 25853}},
+         "present"),
+        ({"formula_classes": {"author_idiolect": 116, "book_unique": 5884}},
+         "thin"),
+        ({"formula_classes": {"author_idiolect": 116, "book_unique": 9}},
+         "absent"),
+    ],
+    "self_similarity": [
+        ({"band_z": {"1": 7.75, "10": 28.52, "100": 20.15, "50": 30.89}},
+         "present"),
+        ({"band_z": {"1": 1.0, "10": 5.0, "100": 2.0}}, "thin"),
+        ({"band_z": {"1": 1.0, "10": 1.5, "100": 0.5}}, "absent"),
+    ],
+    # probe_operator_surface reads #13's silence summary, then #33's
+    "operator_surface": [
+        ([{"operator_tokens": 10949, "lexemes_baseline": 77392},
+          {"boundary_tokens": 5773}], "present"),
+        ([{"operator_tokens": 5000, "lexemes_baseline": 77392},
+          {"boundary_tokens": 100}], "thin"),
+        ([{"operator_tokens": 100, "lexemes_baseline": 100000},
+          {"boundary_tokens": 100}], "absent"),
+    ],
+    "neologism_coinage": [
+        ({"counts": {"true_coinage_types": 51, "coinage_types": 74,
+                     "compound_types": 2216},
+          "category_occurrences": {"true_coinage": 338}}, "present"),
+        ({"counts": {"true_coinage_types": 15, "coinage_types": 20,
+                     "compound_types": 100},
+          "category_occurrences": {"true_coinage": 20}}, "thin"),
+        ({"counts": {"true_coinage_types": 5, "coinage_types": 9,
+                     "compound_types": 50},
+          "category_occurrences": {"true_coinage": 6}}, "absent"),
+    ],
+    "case_emphasis": [
+        ({"by_class_occurrences": {"scream": 263, "label": 1138,
+                                   "function": 453},
+          "caps_share_of_words": 0.0244}, "present"),
+        ({"by_class_occurrences": {"scream": 50, "label": 10,
+                                   "function": 5},
+          "caps_share_of_words": 0.001}, "thin"),
+        ({"by_class_occurrences": {"scream": 0, "label": 0, "function": 0},
+          "caps_share_of_words": 0.0}, "absent"),
+    ],
+    "cyberpunk_arm": [
+        ({"arms": {"influence_cyberpunk": {"tokens": 105,
+                                           "book_shared_types_n2plus": 13}}},
+         "underdetermined"),
+        ({"arms": {"influence_cyberpunk": {"tokens": 12000,
+                                           "book_shared_types_n2plus": 900}}},
+         "present"),
+    ],
+}
+
+
+class TestArtifactProbeRules(unittest.TestCase):
+    """Every artifact probe's declared rule is pinned in both directions."""
+
+    def test_registry_covers_every_registered_probe(self):
+        registered = set(gp.ARTIFACT_PROBES) | {"cyberpunk_arm"}
+        self.assertEqual(set(RULE_CASES), registered)
+
+    def test_every_case_flips_the_rule_the_declared_way(self):
+        for key, cases in RULE_CASES.items():
+            fn = gp.ARTIFACT_PROBES.get(key, gp.probe_cyberpunk_arm)
+            for summaries, want in cases:
+                side = summaries if isinstance(summaries, list) \
+                    else [summaries]
+                with unittest.mock.patch.object(
+                        gp, "_load_summary", side_effect=side):
+                    row = fn()
+                self.assertEqual(row["verdict"], want,
+                                 f"{key} <- {summaries}")
 
 
 if __name__ == "__main__":

@@ -945,9 +945,16 @@ def probe_operator_surface():
 
 
 def probe_neologism_coinage():
-    """TV4: a true-coinage layer outside the dictionary (#19)."""
+    """TV4: a true-coinage layer outside the dictionary (#19).
+
+    #19's ``coinage_types`` (74) is true_coinage + proper_noun, while its
+    ``true_coinage`` occurrence count (338) is true_coinage only, so pairing
+    the two would mix populations.  The label used here is the opaque
+    true-coinage population on both legs: ``true_coinage_types`` (51) over
+    ``true_coinage`` occurrences (338), as #19's own report states.
+    """
     n = _load_summary(ROOT / "analysis/neologism/summary.json")
-    types = n["counts"]["coinage_types"]
+    types = n["counts"]["true_coinage_types"]
     occ = n["category_occurrences"]["true_coinage"]
     if types >= 40 and occ >= 100:
         verdict = "present"
@@ -957,11 +964,15 @@ def probe_neologism_coinage():
         verdict = "absent"
     return {
         "key": "neologism_coinage", "owner": "#19",
-        "observed": {"true_coinage_types": types, "true_coinage_occurrences": occ,
+        "observed": {"true_coinage_types": types,
+                     "true_coinage_occurrences": occ,
+                     "coinage_plus_proper_noun_types":
+                         n["counts"]["coinage_types"],
                      "compound_types": n["counts"]["compound_types"]},
-        "rule": "coinage types >= 40 and occurrences >= 100",
+        "rule": "true-coinage types >= 40 and occurrences >= 100",
         "detail": (f"{types} true coinages over {occ} occurrences; "
-                   f"{n['counts']['compound_types']:,} compound types"),
+                   f"{n['counts']['coinage_types']:,} coinage+proper-noun "
+                   f"types; {n['counts']['compound_types']:,} compound types"),
         "verdict": verdict,
     }
 

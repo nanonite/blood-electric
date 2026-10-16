@@ -544,12 +544,13 @@
     {
       "key": "neologism_coinage",
       "owner": "#19",
-      "rule": "coinage types >= 40 and occurrences >= 100",
-      "detail": "74 true coinages over 338 occurrences; 2,216 compound types",
+      "rule": "true-coinage types >= 40 and occurrences >= 100",
+      "detail": "51 true coinages over 338 occurrences; 74 coinage+proper-noun types; 2,216 compound types",
       "verdict": "present",
       "observed": {
-        "true_coinage_types": 74,
+        "true_coinage_types": 51,
         "true_coinage_occurrences": 338,
+        "coinage_plus_proper_noun_types": 74,
         "compound_types": 2216
       }
     },
@@ -791,7 +792,7 @@
       "probe": "artifact:neologism_coinage",
       "expectation": "an asemic layer: invented surfaces outside the dictionary",
       "verdict": "present",
-      "evidence": "74 true coinages over 338 occurrences; 2,216 compound types",
+      "evidence": "51 true coinages over 338 occurrences; 74 coinage+proper-noun types; 2,216 compound types",
       "annotation": "A true-coinage layer exists outside the dictionary, with thousands of compound types beside it (#19). The asemic surface is a measured layer, not a reading impression."
     },
     {
