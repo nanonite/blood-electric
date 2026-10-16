@@ -10,6 +10,9 @@ __pycache__/
 .DS_Store
 *.swp
 
+# Local Chainlink issue state
+.chainlink/issues.db
+
 # Source PDFs (large binaries)
 docs/pdfs/
 
