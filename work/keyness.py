@@ -19,6 +19,10 @@ else is repaired.
 (``[A-Za-z]+(?:['’][A-Za-z]+)*``) and lower-cased.  Excerpt files (cyberpunk,
 cut-up/Surrealist, Finnegans Wake) have their ``#`` header and ``--``
 attribution lines stripped so only the quoted register text is counted.
+The register set is labelled by what each corpus *is* (#79): ``legal`` is
+historical legal/political prose (public-domain full texts, 1215-1850) and
+``legal_abstracts`` is modern law-journal abstracts (DOAJ) -- the two are
+separate registers and neither is described as the other.
 
 **Statistics.**  For every type in the union of the book and a reference
 corpus, the log-likelihood keyness statistic G² (Dunning 1993; Rayson &
@@ -66,9 +70,15 @@ SCHEMA = "keyness/1"
 
 CORPUS_DIRS = [
     "general_english", "cyberpunk", "cutup_surrealist", "finnegans_wake",
-    "medical", "cs", "legal",
+    "medical", "cs", "legal", "legal_abstracts",
 ]
 EXCERPT_CORPORA = {"cyberpunk", "cutup_surrealist", "finnegans_wake"}
+
+# The modern technical registers that decide the reference-dependent residue.
+# ``legal`` is the *historical* legal/political pole (public-domain full
+# texts, 1215-1850) and must not be cited as modern legal writing; the modern
+# legal register is ``legal_abstracts`` (DOAJ law-journal abstracts, #79).
+TECHNICAL_REGISTERS = ("medical", "cs", "legal", "legal_abstracts")
 
 # A word is "key" at BH-adjusted q < Q_THRESHOLD (false-discovery-rate
 # controlled: with ~48k types in the union an uncorrected p < 0.05 gate would
@@ -320,7 +330,7 @@ def reference_cores(per_corpus, key_lists):
         if c == "general_english":
             continue
         core &= {r["word"] for r in key_lists[c][:TOP_N]}
-    technical = ("medical", "cs", "legal")
+    technical = set(TECHNICAL_REGISTERS)
     ge_only = sorted(keys["general_english"]
                     - set().union(*(keys[c] for c in technical)))
     return sorted(core), inferential, ge_only
@@ -371,9 +381,9 @@ def cross_corpus_section(per_corpus, key_lists, cores, log=print):
                      f"{n_core} are in the top {TOP_N} of every "
                      "inferential corpus (" + ", ".join(f"`{w}`" for w in core)
                      + "). These are diagnostic of the book against general "
-                     "English prose *and* against the medical, CS and legal "
-                     "registers, so they are findings about the book and not "
-                     "about a reference.")
+                     "English prose *and* against the medical, CS, historical "
+                     "legal and modern legal-abstract registers, so they are "
+                     "findings about the book and not about a reference.")
     else:
         lines.append(f"No word is in the top {TOP_N} of every inferential "
                      "corpus; the keyness profile is reference-dependent "
@@ -386,11 +396,11 @@ def cross_corpus_section(per_corpus, key_lists, cores, log=print):
             f"**Reference-dependent residue.** {len(ge_only)} of the "
             f"general-English key words are key against *no* technical "
             "register (" + ", ".join(f"`{w}`" for w in ge_only) + "). They are "
-            "over-used relative to public-domain prose but not against modern "
-            "medical, CS or legal writing, so their keyness is at least partly "
-            "an artifact of how old the general-English reference is; the "
-            "corpora that decide them are `medical` / `cs`, not "
-            "`general_english`.")
+            "over-used relative to public-domain prose but not against the "
+            "modern technical registers (`medical`, `cs`, `legal_abstracts`), "
+            "so their keyness is at least partly an artifact of how old the "
+            "general-English reference is; the corpora that decide them are "
+            "the modern registers, not `general_english`.")
         lines.append("")
     log(f"[keyness] reference-independent core: {len(core)} words; "
         f"general-English-only residue: {len(ge_only)}")
@@ -416,6 +426,15 @@ def write_report(path: Path, book_stats, per_corpus, key_lists, antikey_lists,
       "1993; Rayson & Garside 2000), chi-square p-value, Benjamini-Hochberg "
       "q-value, 0.5-smoothed log-ratio effect size. Positive G\u00b2 = "
       "over-represented in the book.")
+    a("")
+    a("**Reference-side register note.** The two legal registers measure "
+      "different things and are labelled accordingly: `legal` is *historical* "
+      "legal/political prose (public-domain full texts, 1215-1850 -- the "
+      "Federalist Papers, the Declaration of Independence, Magna Carta, "
+      "*The Law*, *The Social Contract*) and `legal_abstracts` is *modern* "
+      "law-journal abstracts (DOAJ). Neither stands in for the other, and "
+      "no claim here treats the historical texts as modern legal writing "
+      "(docs/legal-corpus.md).")
     a("")
     a("**Multiple testing.** The union of book and reference types runs to tens "
       f"of thousands of tests per corpus, so the gate below is the "
@@ -467,7 +486,7 @@ def write_report(path: Path, book_stats, per_corpus, key_lists, antikey_lists,
           "as a large 'significant' anti-key. Read those rows as *which words "
           "the excerpts contain*, not as a measured register difference, and "
           "weight the conclusions from the large corpora "
-          f"(`general_english`, `medical`, `cs`, `legal`).")
+          "(`general_english`, `medical`, `cs`, `legal`, `legal_abstracts`).")
         a("")
     a("## Key words (over-represented in the book)")
     a("")

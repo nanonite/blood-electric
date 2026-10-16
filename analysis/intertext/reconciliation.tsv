@@ -34,6 +34,7 @@ corpus_file:legal/the_law.txt	217f8862dcdc0aee	217f8862dcdc0aee	#56 manifest (sh
 corpus_file:legal/the_social_contract.txt	eb72bb4394712f52	eb72bb4394712f52	#56 manifest (sha256)	y
 corpus_file:medical/pubmed_abstracts.txt	939e419c6a6081a2	939e419c6a6081a2	#56 manifest (sha256)	y
 corpus_file:cs/arxiv_abstracts.txt	89911c1e6c7bdcce	89911c1e6c7bdcce	#56 manifest (sha256)	y
+corpus_file:legal_abstracts/legal_abstracts.txt	bb453bdcd4433b18	bb453bdcd4433b18	#56 manifest (sha256)	y
 author_paratext_present	y	y	#58 author_paratext.tsv	y
 register_register_general_english_tokens	1609978	1609978	#56 manifest vs intertext	y
 register_register_medical_tokens	380072	380072	#56 manifest vs intertext	y

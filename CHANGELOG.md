@@ -369,6 +369,53 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   stamp.
 
 ### Fixed
+- Legal abstract reference corpus evaluated and curated; the historical legal register labelled exactly (#79, follow-up from #56) — the technical-register slot the plan names as "medical/CS/legal **abstracts**" (`docs/meaning-extraction-methods.md` L7.1) had been filled by five public-domain **full texts** written 1215-1850 (the Federalist Papers, the Declaration of Independence, Magna Carta, Bastiat's *The Law*, Rousseau's *The Social Contract*), and `analysis/keyness/keyness_report.md` then described that register as "modern ... legal writing" — a claim exceeding the reference set. Both registers are kept and both are labelled exactly: `legal` is the **historical** legal/political pole (a pinned `LEGAL_REGISTER_LABEL` in `work/reference_corpora.py`, the manifest's `public domain` licence cells, a register note in the report, and tests that fail if any of them drifts), and the new `legal_abstracts` register is the **modern** legal one. The value question was answered by measurement before the decision: scoring a 1,000-record DOAJ sample on the same harness leaves the 32-word reference-independent core **unchanged** and moves the reference-dependent residue 13 → **8**, because `discharge`, `exceeded`, `receives`, `reverse`, `rotation` are ordinary modern legal-register words (discharge of a contract, appellate reversal, a model code, exceeding an authority) that 18th-19th-century legal/political prose does not use — so the residue verdict now rests on three *modern* technical registers (`medical`, `cs`, `legal_abstracts`) instead of two modern ones plus a historical text, and the decision, the numbers and the alternatives (court opinions as the case-law candidate, subscription services, SSRN, the broader DOAJ subject query, a CC-BY-only subset) are recorded in `docs/legal-corpus.md`. The register is a pinned snapshot of `bibjson.journal.title:(law) AND bibjson.journal.language:EN` from DOAJ — 922 records / 920 distinct DOIs, 60 journals, 2020-2026, **249,872 tokens / 17,402 types / 969 key words at q < 0.05**, well above the 10,000-token inferential floor — with the same snapshot pinning and drift reporting as #78's medical corpus: the query is recency-sorted, so the stable unit is the committed bytes and their observed checksum. DOAJ editorial stubs and non-English abstracts are excluded by a 30-word abstract gate (part of the selection rule, so they appear in neither file), and the bilingual-journal leak the gate cannot see — Indonesian function words from EN/ID journals, ~3% of the register's tokens, visible in the anti-key table — is disclosed in the memo rather than filtered by an undisclosed screen. Rights are resolved per record and never asserted: every record's journal licence is looked up in DOAJ's journal API (batched 50 ISSNs per request through the module's retrying `download` helper) and written to `analysis/reference_corpora/legal_abstracts/rights.tsv`, one row per DOI with journal, publisher, year, language, ISSNs, the verbatim licence, a derived class (`open_access` / `free_to_read` / `unverified`), the verification route and date; the snapshot verifies **920 open access** (525 `cc by`, 171 `cc by-nc`, 156 `cc by-nc-nd`, 54 `cc by-sa`, 14 `cc by-nc-sa`, 2 `cc by-nd`), 0 unverified. The corpus file's per-record headers carry DOI + ISSNs, so a cached corpus re-resolves its licences from its own bytes (the medical pattern): a ledger covering the corpus's DOI set is kept, a stale or missing one is re-resolved in download mode and warned about, network-free, under `--no-download`. The manifest's licence cell is the policy statement plus the pointer to the ledger, never a blanket claim. Scope is bounded deliberately: the register is wired into the keyness harness where the plan placed legal abstracts, while #57's intertext arm set, #60's genre dossier and #37's POS comparison are unchanged and their published numbers stand (only #37's corpus-file inventory moves 29 → 30, from re-running its offline build over the new directory). Regenerated artifacts: `analysis/keyness/` (the 8th table, the register note, the residue verdict) and #57's `sources.tsv` / `availability_report.md` (a note on the new register, no new matcher arm). Tests 57 → **86** (`work/test_reference_corpora.py`: the historical label, DOAJ record parsing and the stub gate, header round-trip, licence-class derivation and batching, non-JSON and missing-journal handling, ledger round-trip and DOI-set coverage, the four build-wiring modes (covering ledger needs no network; a stale ledger warns network-free under `--no-download` and re-resolves in download mode, from the builder and from the cache-only orchestrator), and tree-level checks that the built ledger covers the snapshot and names only CC licences) and 43 → **45** (`work/test_keyness.py`: the modern-register-decides-residue behaviour, and the report's register labels). All offline; the live corpora are read from the committed cache.
+- Medical abstract reference corpus curated as a rights-verified snapshot (#78, follow-up from
+  #56's review) — the `medical` register was labelled **"open access (PubMed abstracts)"** in
+  `analysis/reference_corpora/manifest.tsv`, in #57's acquisition ledger and in the README. The
+  label is false for most of the corpus: PubMed *indexes* publisher-copyrighted abstracts (the
+  efetch text itself carries `Copyright © 2026 Elsevier Inc. All rights reserved.` lines), and open
+  access is a **per-record** fact. The corpus is **retained, and the decision is recorded with its
+  evidence** (`docs/medical-corpus.md`): it is one of the four inferential registers in #56's
+  keyness (380,072 tokens / 25,536 types, so its agreement enters the 32-word
+  reference-independent core and it is one of the corpora that decide the 13 reference-dependent
+  residue words), and in #60's genre dossier it is the pole that makes two verdicts readable —
+  `clinical` 7.02/1k in the book against 12.35/1k in medical abstracts and 0.155/1k in prose,
+  `virus` 8.15 against 9.87 and 0.058. **The correction is verification, not removal or
+  restriction.** `work/reference_corpora.py` now extracts the snapshot's PMIDs (`parse_pmids`) and
+  verifies each one against Europe PMC's core record (`license`, `isOpenAccess`, `inEPMC`,
+  `inPMC`, `hasPDF`; 200 ids per request through the module's retrying `download` helper), writing
+  `analysis/reference_corpora/medical/rights.tsv` — one row per record with a derived class
+  (`open_access` when a CC licence is recorded, `free_full_text` for a PMC deposit without one,
+  `publisher_copyright`, and `unverified` for an id Europe PMC does not return, which is never
+  upgraded into a right). The pinned snapshot verifies **602 open access** (296 `cc by`, 183
+  `cc by-nc`, 122 `cc by-nc-nd`, 1 `cc0`), **21 free full text**, **376 publisher copyright** and
+  **1 unverified** — the old label claimed 1,000. The one unverified id is disclosed rather than
+  dropped: `PMID: 42832289181` is a corrupt id string in the snapshot (PubMed's text output glued
+  record 181's citation header onto record 180's PMID line); the underlying record is DOI
+  `10.1097/MEG.0000000000003269` = PMID 42832289, which is publisher copyright anyway, so the
+  conservative treatment costs nothing analytically. **Snapshot stability is documented, not
+  assumed.** The query (`disease[Title]`, retmax=1000, sort=pub_date) is recency-sorted, so
+  re-running it returns a *different* sample; the stable unit is the pinned snapshot — #80's
+  manifest pin and drift mechanism are unchanged, and a changed snapshot re-verifies its rights
+  automatically (a fresh fetch re-verifies every record; a cached corpus keeps its ledger when it
+  covers exactly its PMIDs; a stale or missing ledger is re-verified in download mode and warned
+  about, network-free, under `--no-download`). The manifest's `medical` licence cell, #57's
+  `register_medical` row (new `rights_verified_per_record` authorization class) and the README
+  table now state the per-record position; `docs/medical-corpus.md` records the decision, the
+  record selection, the reuse terms (internal comparison statistics, quotations attributed to
+  journal + PMID, no redistribution of the abstract files) and the alternatives considered (a
+  PMC-OA-only subset — cleaner rights by construction, but biased toward CC-licensed,
+  NIH-funded, PMC-deposited records — rejected as the main corpus and available by filtering
+  `rights.tsv`). Tests 42 → **57**, all offline: PMID parsing, class derivation, 200-id batching,
+  non-JSON and missing-record handling, ledger round-trip and exact-coverage checks, the three
+  build-wiring modes (covering ledger needs no network; stale ledger warns under `--no-download`
+  and re-verifies in download mode), and tree-level checks that the built ledger covers the
+  snapshot exactly, contradicts a blanket open-access label, and no longer appears in the manifest.
+  Rebuilt cache-only: every corpus hash unchanged; only the manifest's `medical` licence cell and
+  the #57 `sources.tsv` `register_medical` row differ. Downstream manifest consumers
+  (`test_keyness`, `test_intertext`, `test_genre_prior`, `test_reading_compression`,
+  `test_frequency_zipf`) stay green.
 - Seam-loss evaluation reconciled to one source of truth (#77, follow-up to #17's review) — the
   result comment posted on #17 scored the fused scope with a **page-level bag of baseline token
   strings** instead of the offset-exact span rule the spec, `seam_loss.tsv` and the build all use,

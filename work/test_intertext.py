@@ -131,7 +131,8 @@ class TestAcquisitionLedger(unittest.TestCase):
                       if s.authorization not in it.NON_INGESTIBLE]
         self.assertTrue(ingestible)
         for s in ingestible:
-            self.assertIn(s.authorization, (it.AUTH_OPEN, it.AUTH_EXCERPT),
+            self.assertIn(s.authorization,
+                          (it.AUTH_OPEN, it.AUTH_EXCERPT, it.AUTH_RIGHTS),
                           f"{s.key} ingested under a non-open class")
             self.assertTrue(s.license and s.note,
                             f"{s.key} ingested without licence/provenance")

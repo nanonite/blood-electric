@@ -35,8 +35,8 @@ same-tradition text are used:
 
   The cited influences are the #56 fair-use excerpt corpora (Gibson /
   Stephenson / Sterling; Burroughs / Artaud / Breton; Joyce) and the #56
-  public-domain / open registers (general English, medical, legal, cs) as
-  register controls.
+  public-domain / open registers (general English, medical, the historical
+  legal/political texts, cs) as register controls.
 
 **3. The matcher.**  A plain n-gram overlap harness (n = 1..6) over the #17
 book *word-part* layer, markup-screened the #56 way and split at page
@@ -120,6 +120,8 @@ AUTH_MIRROR = "unauthorized_mirror"      # an upload with no rights holder's con
 AUTH_BLOCKED = "bot_blocked"             # the host refused this agent
 AUTH_ABSENT = "not_offered"              # the host offers no such text
 AUTH_SEARCHED = "searched_not_found"     # searched, no usable copy located
+AUTH_RIGHTS = "rights_verified_per_record"  # free to fetch; each record's reuse
+                                            # terms checked separately (#78 medical)
 
 # verdicts
 V_INGESTED = "ingested_excerpt"
@@ -270,13 +272,21 @@ SOURCES: tuple[Source, ...] = (
            "English' rather than genre."),
     Source("register_medical", "register_control",
            "PubMed abstracts", "analysis/reference_corpora/medical/", "en",
-           "open access", AUTH_OPEN, V_INGESTED, "-",
-           "Technical register control from #56."),
+           "publisher copyright; per-record rights in medical/rights.tsv",
+           AUTH_RIGHTS, V_INGESTED, "-",
+           "Technical register control from #56.  Rights verified per record "
+           "against Europe PMC (#78) into #56's medical/rights.tsv: most "
+           "records are the publisher's copyright, so the old blanket 'open "
+           "access' label was false for a large share of them "
+           "(docs/medical-corpus.md)."),
     Source("register_legal", "register_control",
-           "Public-domain legal/political texts",
+           "Public-domain historical legal/political texts",
            "analysis/reference_corpora/legal/", "en",
            "public domain", AUTH_OPEN, V_INGESTED, "-",
-           "Technical register control from #56."),
+           "Technical register control from #56.  Historical full texts "
+           "(1215-1850), not legal abstracts and not modern legal writing; "
+           "#79's modern legal-abstract register (DOAJ) is wired into the "
+           "keyness harness only and is deliberately not an intertext arm."),
     Source("register_cs", "register_control",
            "arXiv cs abstracts", "analysis/reference_corpora/cs/", "en",
            "open access", AUTH_OPEN, V_INGESTED, "-",
@@ -369,7 +379,7 @@ ARMS: tuple[Arm, ...] = (
     Arm("register_medical", "register", "register_medical",
         "PubMed abstracts (control)"),
     Arm("register_legal", "register", "register_legal",
-        "public-domain legal texts (control)"),
+        "public-domain historical legal texts (control)"),
     Arm("register_cs", "register", "register_cs",
         "arXiv cs abstracts (control)"),
 )

@@ -27,8 +27,8 @@ The task names *Headcode*, *Human_Worms*, *Smart-d*, *GENEDUB* and *Nonexistence
 | Burroughs / Artaud / Breton (fair-use excerpts) | cited_influence | free_excerpt | matcher arm |
 | Joyce, Finnegans Wake (fair-use excerpts) | cited_influence | free_excerpt | matcher arm |
 | General English prose (15 public-domain texts) | register_control | open | matcher arm |
-| PubMed abstracts | register_control | open | matcher arm |
-| Public-domain legal/political texts | register_control | open | matcher arm |
+| PubMed abstracts | register_control | rights_verified_per_record | matcher arm |
+| Public-domain historical legal/political texts | register_control | open | matcher arm |
 | arXiv cs abstracts | register_control | open | matcher arm |
 
 The same-author probe is the *Great Works* text — a **different** Siratori work, freely published online.  It is the only genuine second Siratori text available under the project's research-quotation convention, and it is used only as an idiolect probe.  The cited influences are the #56 fair-use excerpts (Gibson / Stephenson / Sterling; Burroughs / Artaud / Breton; Joyce); they are excerpt-length by copyright necessity, which the matcher discloses with a shuffle null rather than hiding.
@@ -36,7 +36,7 @@ The same-author probe is the *Great Works* text — a **different** Siratori wor
 ## Provenance verified, not asserted
 
 * **The embedded Siratori excerpt is the page it names.**  The first 3 paragraphs of <http://www.greatworks.org.uk/poems/ks.html> re-extract to 330 tokens, sha256 `436ebaddce73d9ca…`.  `--probe` re-fetches the page and diffs the extraction against that pin, so the constant cannot drift silently.
-* **Every reference-corpus file is checked against #56's manifest sha256** (29 files); a mismatch is a hard failure in `reconciliation.tsv`, so an arm cannot run on a substituted text.
+* **Every reference-corpus file is checked against #56's manifest sha256** (30 files); a mismatch is a hard failure in `reconciliation.tsv`, so an arm cannot run on a substituted text.
 * **The author arm is the author's own words only.**  #58's paratext table is an interview Q/A; the 1 turn(s) recorded as the interviewer's (PT04) are excluded rather than attributed to the author.
 
 ## What was sought and not used

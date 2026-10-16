@@ -6,5 +6,5 @@ influence_cutup_surrealist	influence	Burroughs / Artaud / Breton excerpts	influe
 influence_finnegans_wake	influence	Joyce, Finnegans Wake excerpts	influence_finnegans_wake	1	49	42	2
 register_general_english	register	general English prose (control)	register_general_english	15	1609978	46678	5617
 register_medical	register	PubMed abstracts (control)	register_medical	1	380072	25536	1485
-register_legal	register	public-domain legal texts (control)	register_legal	5	350406	13378	2413
+register_legal	register	public-domain historical legal texts (control)	register_legal	5	350406	13378	2413
 register_cs	register	arXiv cs abstracts (control)	register_cs	1	103048	8996	1049

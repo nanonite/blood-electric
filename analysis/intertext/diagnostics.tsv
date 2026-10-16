@@ -11,4 +11,4 @@ arm_register_cs_nonempty	1	1 sequences, 0 empty
 named_works_ingested	0	must be 0 (no named work may be ingested)
 book_formulas_n2plus	25969	n>=2 with book freq >= 2
 paratext_interviewer_turns_excluded	1	interviewer turns dropped from the author arm: PT04
-corpus_files_provenance_ok	29	29 manifest files checked against #56 sha256
+corpus_files_provenance_ok	30	30 manifest files checked against #56 sha256

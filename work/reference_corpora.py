@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """#56 Reference corpora for keyness -> analysis/reference_corpora/
 
-Assembles the six reference corpora that the keyness harness (``work/keyness.py``)
-compares *Blood Electric* against:
+Assembles the eight reference registers that the keyness harness
+(``work/keyness.py``) compares *Blood Electric* against:
 
   general_english    public-domain English prose.  The eight pinned #24 baselines
                     (``analysis/frequency/reference_cache/``) plus seven more
@@ -18,15 +18,38 @@ compares *Blood Electric* against:
   finnegans_wake    Joyce.  *Finnegans Wake* (1939) is still in US copyright
                     (95 years from publication -> 2034), so this is a fair-use
                     excerpt corpus, not the full text.
-  medical           PubMed abstracts (open access).  A live E-utilities query;
-                    the manifest records the observed checksum, and a rebuild
-                    that changes it is reported as drift.
+  medical           PubMed abstracts, kept as a pinned snapshot.  The
+                    E-utilities query (``disease[Title]``, retmax=1000,
+                    sort=pub_date) is recency-sorted, so re-running it
+                    returns a *different* sample: the stable unit is the
+                    committed corpus and its observed checksum, and a rebuild
+                    that changes it is reported as drift.  Rights are verified
+                    per record against Europe PMC and written to
+                    ``medical/rights.tsv`` -- PubMed abstracts are the
+                    publishers' copyright unless a licence is recorded, so the
+                    corpus is never labelled blanket open access
+                    (docs/medical-corpus.md, #78).
   cs                arXiv abstracts (open access), categories cs.AI / cs.LG /
                     cs.CL.  Live API query; same observed-checksum +
                     drift-reporting treatment as medical.
-  legal             public-domain legal / political texts (Gutenberg): the
-                    Federalist Papers, the Declaration of Independence, Magna
-                    Carta, Bastiat's *The Law*, Rousseau's *The Social Contract*.
+  legal             **historical** legal/political *full texts* (public domain,
+                    Gutenberg): the Federalist Papers (1787-88), the
+                    Declaration of Independence (1776), Magna Carta (1215),
+                    Bastiat's *The Law* (1850) and Rousseau's *The Social
+                    Contract* (1762).  This is the historical legal register:
+                    it is **not** legal abstracts and **not** modern legal
+                    writing, and no claim in this workspace may describe it
+                    as either (docs/legal-corpus.md, #79).
+  legal_abstracts   modern law-journal abstracts from the Directory of Open
+                    Access Journals (DOAJ): journals whose title contains
+                    "law", English-language, recency-sorted, 1,000 records --
+                    a pinned snapshot with the same observed-checksum +
+                    drift-reporting treatment as medical.  The register is
+                    open access as a matter of DOAJ policy, but the licence
+                    is a per-journal fact, so every journal's DOAJ record is
+                    looked up and the answer is written to
+                    ``legal_abstracts/rights.tsv``: the per-record ledger is
+                    the claim, never a blanket label (#79).
 
 Every corpus is written under ``analysis/reference_corpora/<corpus>/`` and the
 provenance of every file is recorded in ``manifest.tsv`` (source, licence,
@@ -53,11 +76,19 @@ exact bytes in the tree, and the ``hash_role`` column records what each one
                      records observations only.
 
 **``--no-download`` is cache-only for every source.**  The live PubMed /
-arXiv queries are skipped, and so is any general-English or legal Gutenberg
-text that is not already cached: those are skipped with a warning rather than
-fetched, so the flag can never be surprised by a network call.  (The eight
-pinned baselines are copied from #24's local cache, a file copy rather than a
-network fetch; a missing #24 cache is a hard error telling you to run #24.)
+arXiv / DOAJ queries are skipped, and so is any general-English or legal
+Gutenberg text that is not already cached: those are skipped with a warning
+rather than fetched, so the flag can never be surprised by a network call.
+(The eight pinned baselines are copied from #24's local cache, a file copy
+rather than a network fetch; a missing #24 cache is a hard error telling you
+to run #24.)
+A cached medical corpus keeps its per-record rights ledger when that ledger
+still covers exactly the corpus's PMIDs; a stale or missing ledger is
+re-verified in download mode and reported as a warning under ``--no-download``,
+so a rights claim is never silently assumed.  The same holds for
+``legal_abstracts``, whose ledger is keyed by the DOIs (and ISSNs) the corpus
+file itself carries, so a cached corpus re-resolves its licences from its own
+bytes.
 
 The fair-use excerpt files are embedded below as string constants and written
 verbatim, so a fresh clone regenerates them from the committed script alone.
@@ -81,6 +112,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -130,7 +162,14 @@ EXTRA_GENERAL = [
     ("metamorphosis", "Franz Kafka", 5200),
 ]
 
-# Public-domain legal / political register.
+# Public-domain **historical** legal / political register.  These are full
+# texts, not abstracts, and they are centuries old: the register measures the
+# book against the prose of past legal/political argument, not against modern
+# legal writing (docs/legal-corpus.md, #79).  The modern legal-abstract
+# register is built separately, from DOAJ (see DOAJ_QUERY below).
+LEGAL_REGISTER_LABEL = ("historical legal/political full texts (public "
+                        "domain); not legal abstracts, not modern legal "
+                        "writing")
 LEGAL = [
     ("federalist_papers", "Hamilton, Madison, Jay", 1404),
     ("declaration_of_independence", "Thomas Jefferson", 1),
@@ -144,6 +183,28 @@ PUBMED_QUERY = "disease[Title]"
 PUBMED_RETMAX = 1000
 ARXIV_QUERY = "cat:cs.AI OR cat:cs.LG OR cat:cs.CL"
 ARXIV_MAX = 500
+
+# #79: the modern legal-abstract register, from the Directory of Open Access
+# Journals.  The selection rule mirrors medical's ``disease[Title]``: journals
+# whose *title* contains "law", English-language, recency-sorted
+# (``created_date``), 1,000 records.  A recency-sorted live query is not a
+# stable sample, so -- exactly as for medical -- the stable unit is the pinned
+# snapshot and its observed checksum, and a rebuild that fetches different
+# bytes is reported as drift.  The broader alternative
+# (``bibjson.subject.term:(law)``, ~217k articles) was considered and left
+# documented in docs/legal-corpus.md.
+DOAJ_SEARCH = "https://doaj.org/api/v2/search/articles/{query}"
+DOAJ_JOURNAL = "https://doaj.org/api/v2/search/journals/{query}"
+DOAJ_QUERY = "bibjson.journal.title:(law) AND bibjson.journal.language:EN"
+DOAJ_MAX = 1000
+DOAJ_PAGE = 100
+# A real law abstract runs to hundreds of words.  DOAJ editorial stubs
+# ("Comment.", "Introduction.", "Abstract not available.") and non-English
+# abstracts sit under this floor, so the selection rule skips them: they are
+# in neither the corpus nor the ledger.
+MIN_ABSTRACT_WORDS = 30
+# Licence lookups are per journal (by ISSN), batched through one OR query.
+DOAJ_RIGHTS_CHUNK = 50
 
 # ---------------------------------------------------------------------------
 # fair-use excerpt corpora (copyrighted works; short attributed quotations)
@@ -306,7 +367,7 @@ def strip_gutenberg(text: str) -> str:
 # makes the build idempotent: a second run over intact caches is a no-op, and a
 # run whose fetch fails leaves the previous corpus untouched and reports.
 MIN_TOKENS = {
-    "cs": 50_000, "medical": 100_000,
+    "cs": 50_000, "medical": 100_000, "legal_abstracts": 100_000,
 }
 # Floor distinguishing a real work from a fetch artefact (Gutenberg 404 page,
 # redirect stub).  Set below the smallest genuine document in these corpora
@@ -358,13 +419,24 @@ LIVE_SOURCES = {
     "medical": (
         (f"pubmed eutils esearch efetch term={PUBMED_QUERY} "
          f"retmax={PUBMED_RETMAX} sort=pub_date"),
-        "open access (PubMed abstracts)"),
+        # #78: not "open access" -- the publishers hold the copyright in most
+        # of these abstracts, and only the per-record ledger can say which.
+        "publisher copyright; per-record rights in medical/rights.tsv"),
     "cs": (f"arxiv.org api query={ARXIV_QUERY} max_results={ARXIV_MAX}",
            "open access (arXiv abstracts)"),
+    # #79: DOAJ-listed journals are open access as a matter of policy, but
+    # the licence is a per-journal fact -- resolve it per record in
+    # legal_abstracts/rights.tsv, never assert it blanket.
+    "legal_abstracts": (
+        (f"doaj.org api search articles query={DOAJ_QUERY} max={DOAJ_MAX} "
+         f"sort=created_date:desc"),
+        ("open access (DOAJ); per-record licence in "
+         "legal_abstracts/rights.tsv")),
 }
 LIVE_FILES = {
     "medical": "medical/pubmed_abstracts.txt",
     "cs": "cs/arxiv_abstracts.txt",
+    "legal_abstracts": "legal_abstracts/legal_abstracts.txt",
 }
 
 
@@ -376,6 +448,442 @@ def live_row(corpus: str, data: bytes) -> dict:
         "license": license_, "author": "various",
         "sha256": sha256_bytes(data), "bytes": len(data),
     }
+
+
+# ---------------------------------------------------------------------------
+# per-record rights verification for the medical corpus (#78)
+# ---------------------------------------------------------------------------
+# PubMed *indexes* publisher-copyrighted abstracts; the efetch text itself
+# carries "Copyright (c) ... All rights reserved" lines, so "open access" is a
+# per-record fact and not a property of the corpus.  Every record in the
+# snapshot is therefore looked up in Europe PMC, which records a licence string
+# and an open-access flag per record, and the answers are written to
+# ``medical/rights.tsv`` beside the corpus.  A record Europe PMC does not
+# return is ``unverified`` and treated as *not* open: the ledger never upgrades
+# an unknown into a right, and it covers exactly the PMIDs of the snapshot it
+# was built from.  Unlike the manifest, the ledger *does* carry a verification
+# date: licences move, and a rights claim without a date cannot be re-checked.
+
+EUROPE_PMC_SEARCH = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+RIGHTS_FILE = "medical/rights.tsv"
+RIGHTS_HEADER = ["pmid", "license", "is_open_access", "in_epmc", "in_pmc",
+                 "has_pdf", "rights_class", "verified_via", "verified_at"]
+RIGHTS_CHUNK = 200
+
+PMID_RE = re.compile(r"PMID:\s*(\d+)")
+
+
+def parse_pmids(data: bytes) -> list:
+    """The PMIDs of an efetch ``rettype=abstract`` body, in file order.
+
+    Decorations (``PMID: 123 [Indexed for MEDLINE]``) are ignored, so the list
+    is the snapshot's record set rather than only its clean lines.
+    """
+    text = data.decode("utf-8", errors="replace")
+    return list(dict.fromkeys(PMID_RE.findall(text)))
+
+
+def rights_class(license_: str, in_epmc: str) -> str:
+    """The reuse class of one verified record.
+
+    open_access          a licence string is recorded (``cc by``, ``cc by-nc``,
+                         ...): reuse under that licence is verified per record.
+    free_full_text       deposited in Europe PMC / PMC with no licence recorded:
+                         free to read, redistribution not licensed.
+    publisher_copyright  no Europe PMC / PMC deposit recorded: the abstract
+                         stays the publisher's copyright.
+    """
+    if license_:
+        return "open_access"
+    if in_epmc == "Y":
+        return "free_full_text"
+    return "publisher_copyright"
+
+
+def today_iso() -> str:
+    """Today's date, UTC -- the one wall-clock value in this module.
+
+    The manifest carries no date on purpose (byte-for-byte reproducibility),
+    but a rights claim without a verification date cannot be re-checked and
+    licences move, so ``medical/rights.tsv`` records when each row was
+    verified (see ``fetch_rights``).
+    """
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def fetch_rights(pmids, dest: Path, log=print, fetch=download) -> list:
+    """Verify each PMID in *pmids* against Europe PMC; returns rights rows.
+
+    Batched (200 ids per request: the URI-length limit that splits efetch
+    applies here too) through the module's ``download`` helper, so a fetch
+    failure retries and a test-level ``no_network`` patch covers these calls
+    like any other fetch.  Responses are staged beside the corpus and unlinked,
+    exactly like the efetch chunks.
+    """
+    rows = []
+    n_chunks = (len(pmids) + RIGHTS_CHUNK - 1) // RIGHTS_CHUNK
+    for n in range(0, len(pmids), RIGHTS_CHUNK):
+        chunk = pmids[n:n + RIGHTS_CHUNK]
+        query = "(" + " OR ".join(f"ext_id:{p}" for p in chunk) + ") AND src:med"
+        url = EUROPE_PMC_SEARCH + "?" + urllib.parse.urlencode(
+            {"query": query, "format": "json", "resultType": "core",
+             "pageSize": len(chunk)})
+        stage = dest / f"_rights_{n // RIGHTS_CHUNK}.json"
+        log(f"[reference_corpora] verifying rights for {len(chunk)} PubMed "
+            f"records against Europe PMC ({n // RIGHTS_CHUNK + 1}/{n_chunks})")
+        seen = {}
+        try:
+            meta = json.loads(fetch(url, stage, log))
+            for r in meta.get("resultList", {}).get("result", []):
+                seen[str(r.get("pmid") or r.get("id"))] = r
+        except ValueError:
+            log("[reference_corpora] WARNING: Europe PMC response was not "
+                "JSON; this batch's records are recorded unverified")
+        for p in chunk:
+            r = seen.get(p)
+            if r is None:
+                rows.append({
+                    "pmid": p, "license": "", "is_open_access": "",
+                    "in_epmc": "", "in_pmc": "", "has_pdf": "",
+                    "rights_class": "unverified",
+                    "verified_via": "Europe PMC core (no record returned)",
+                    "verified_at": today_iso(),
+                })
+                continue
+            license_ = r.get("license") or ""
+            rows.append({
+                "pmid": p, "license": license_,
+                "is_open_access": r.get("isOpenAccess", ""),
+                "in_epmc": r.get("inEPMC", ""),
+                "in_pmc": r.get("inPMC", ""),
+                "has_pdf": r.get("hasPDF", ""),
+                "rights_class": rights_class(license_, r.get("inEPMC", "")),
+                "verified_via": "Europe PMC core",
+                "verified_at": today_iso(),
+            })
+        stage.unlink(missing_ok=True)
+    return rows
+
+
+def write_rights(path: Path, rows) -> str:
+    """Write the per-record rights ledger (sorted by PMID); returns a summary.
+
+    The summary ("23 open access, 1 free_full_text, ...") is returned so the
+    caller logs the distribution the ledger records, not just its row count.
+    """
+    ordered = sorted(rows, key=lambda r: r["pmid"])
+    write_tsv(path, RIGHTS_HEADER, ordered)
+    counts = {}
+    for r in ordered:
+        counts[r["rights_class"]] = counts.get(r["rights_class"], 0) + 1
+    return ", ".join(f"{n} {c}" for c, n in sorted(counts.items()))
+
+
+def read_rights(path: Path) -> dict:
+    """Ledger rows keyed by PMID; {} when absent or unreadable."""
+    if not path.exists():
+        return {}
+    out = {}
+    with path.open(encoding="utf-8") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+        for line in fh:
+            if not line.strip():
+                continue
+            row = dict(zip(header, line.rstrip("\n").split("\t")))
+            if row.get("pmid"):
+                out[row["pmid"]] = row
+    return out
+
+
+def rights_ledger_covers(path: Path, pmids) -> bool:
+    """True when the ledger holds exactly one row for every corpus PMID."""
+    ledger = read_rights(path)
+    return bool(pmids) and len(ledger) == len(pmids) and all(
+        p in ledger for p in pmids)
+
+
+# ---------------------------------------------------------------------------
+# the modern legal-abstract register: DOAJ records + per-journal licences
+# (#79)
+# ---------------------------------------------------------------------------
+# The register is open access as a matter of DOAJ policy, but the licence is
+# a per-journal fact, so it is resolved, not asserted.  Each corpus record
+# is a law-journal article whose abstract is the register text; the
+# provenance (DOI, journal, publisher, year, language, ISSN) and the licence
+# are written to ``legal_abstracts/rights.tsv`` beside the corpus, one row
+# per record, with a verification date -- the medical ledger's structure
+# (#78), applied to a different registry.  A record whose journal lookup
+# returns nothing is ``unverified`` and is never treated as open.
+
+DOAJ_RIGHTS_FILE = "legal_abstracts/rights.tsv"
+DOAJ_RIGHTS_HEADER = ["doi", "journal", "publisher", "year", "language",
+                      "issn", "license", "license_class", "verified_via",
+                      "verified_at"]
+
+# The per-record header the corpus file carries, e.g.
+# "RUDN Journal of Law (2025; EN). doi: 10.22363/...; ISSN 2313-2337/2408-9001".
+# The header is provenance (what the record is), while ``rights.tsv`` is the
+# reuse position (what may be done with it).  It carries the DOI *and* the
+# ISSNs so a cached corpus can re-resolve its licences from its own bytes --
+# the medical pattern, where PMIDs in the efetch text bind a cached corpus
+# to its ledger.
+RECORD_HEADER_RE = re.compile(
+    r"^(?P<journal>.+?) \((?P<year>[^;]*); (?P<language>[^)]*)\)\. "
+    r"doi: (?P<doi>\S+?); ISSN (?P<issn>\S+)\s*$")
+HTML_TAG_RE = re.compile(r"<[^>]+>")
+EN_WORD_RE = re.compile(r"[A-Za-z]+(?:['\u2019][A-Za-z]+)*")
+
+
+def clean_abstract(raw: str) -> str:
+    """Abstract text with markup stripped, entities decoded, space collapsed.
+
+    Markup is stripped *before* entities are decoded (decoding first would
+    turn a ``&lt;i&gt;`` into a tag that a second pass would then strip --
+    the same re-entrancy lesson #80 recorded for the arXiv parser).  A
+    decoded ``&lt;`` therefore stays a literal character, which is harmless
+    to the #24 word regex.
+    """
+    text = HTML_TAG_RE.sub(" ", raw)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def doi_of(record: dict) -> str:
+    """A record's stable key: its DOI, or ``doaj:<id>`` when it has none."""
+    for ident in record.get("bibjson", {}).get("identifier", []):
+        if ident.get("type") == "doi" and ident.get("id"):
+            return ident["id"]
+    return f"doaj:{record.get('id', '')}"
+
+
+def parse_doaj_records(pages) -> list:
+    """Record dicts from DOAJ article-search JSON, stubs skipped.
+
+    Each item is {doi, journal, publisher, year, language, issns, abstract}.
+    The abstract word gate (``MIN_ABSTRACT_WORDS``) is the selection rule
+    that skips DOAJ's editorial stubs and non-English abstracts: it is part
+    of what the corpus *is*, so the skipped records appear in neither the
+    corpus file nor the ledger.
+    """
+    records = []
+    for page in pages:
+        try:
+            meta = json.loads(page)
+        except ValueError:
+            continue
+        for r in meta.get("results", []):
+            bib = r.get("bibjson", {})
+            abstract = clean_abstract(bib.get("abstract", "") or "")
+            if len(EN_WORD_RE.findall(abstract)) < MIN_ABSTRACT_WORDS:
+                continue
+            journal = bib.get("journal", {})
+            records.append({
+                "doi": doi_of(r),
+                "journal": journal.get("title", ""),
+                "publisher": journal.get("publisher", ""),
+                "year": bib.get("year", "") or "",
+                "language": "/".join(journal.get("language", []) or []),
+                "issns": [i for i in (journal.get("issns", []) or []) if i],
+                "abstract": abstract,
+            })
+    return records
+
+
+def doaj_corpus_bytes(records) -> bytes:
+    """The corpus file: a provenance header, then the abstract, per record.
+
+    The header names journal, year, language, DOI and ISSNs, so every
+    counted line of register text has its record beside it -- the medical
+    corpus's shape (its efetch text carries citation headers and PMIDs),
+    kept deliberately.  Because the ISSNs travel in the file, a cached
+    corpus can re-resolve its licences from its own bytes (the medical
+    pattern, where PMIDs in the text bind a cached corpus to its ledger).
+    """
+    parts = []
+    for r in records:
+        # "-" for a record with no ISSN: the header must stay parseable so
+        # the corpus can always be read back against its ledger.
+        issns = "/".join(r["issns"]) if r["issns"] else "-"
+        head = (f"{r['journal']} ({r['year']}; {r['language']}). "
+                f"doi: {r['doi']}; ISSN {issns}")
+        parts.append(f"{head}\n\n{r['abstract']}")
+    return "\n\n".join(parts).encode("utf-8")
+
+
+def doaj_rights_class(license_: str) -> str:
+    """The reuse class of one record, from its journal's licence.
+
+    open_access          the journal's DOAJ record carries a licence (the CC
+                         variants DOAJ lists): reuse under that licence is
+                         verified per record.
+    free_to_read         DOAJ-listed but no licence recorded: free to read,
+                         redistribution not licensed.
+    """
+    return "open_access" if license_ else "free_to_read"
+
+
+def resolve_doaj_licences(records, log=print, fetch=download) -> list:
+    """Resolve each record's journal licence; returns the ledger rows.
+
+    The licence lives on the *journal*, so the lookup is batched by ISSN
+    (``DOAJ_RIGHTS_CHUNK`` ISSNs per request through one OR query, like the
+    medical batching) through the module's retrying ``download`` helper.
+    Responses are staged beside the destination and unlinked.  A journal the
+    API does not return is ``unverified``: an unknown licence is never read
+    as an open one, and a record with no ISSN at all cannot be looked up and
+    is ``unverified`` for that stated reason.
+
+    Used both from a fresh fetch (records parsed from the API pages) and
+    from a cached corpus (records parsed back out of the corpus file), so
+    the licence position is re-verifiable without refetching the corpus.
+    """
+    rows = []
+    issn_rows = {}
+    for r in records:
+        row = {
+            "doi": r["doi"], "journal": r["journal"],
+            "publisher": r.get("publisher", ""), "year": r["year"],
+            "language": r["language"], "issn": "/".join(r["issns"]),
+            "license": "", "license_class": "unverified",
+            "verified_via": "DOAJ journal record (no ISSN on the record)"
+                            if not r["issns"] else "",
+            "verified_at": ""}
+        rows.append(row)
+        for issn in r["issns"]:
+            issn_rows.setdefault(issn, []).append(row)
+    issns = sorted(issn_rows)
+    n_chunks = (len(issns) + DOAJ_RIGHTS_CHUNK - 1) // DOAJ_RIGHTS_CHUNK
+    seen = {}
+    for n in range(0, len(issns), DOAJ_RIGHTS_CHUNK):
+        chunk = issns[n:n + DOAJ_RIGHTS_CHUNK]
+        query = " OR ".join(f"issn:{i}" for i in chunk)
+        url = DOAJ_JOURNAL.format(query=urllib.parse.quote(query)) + \
+              f"?pageSize={len(chunk)}"
+        stage = OUT / Path(DOAJ_RIGHTS_FILE).parent / \
+                f"_licences_{n // DOAJ_RIGHTS_CHUNK}.json"
+        log(f"[reference_corpora] resolving licences for {len(chunk)} "
+            f"journals against DOAJ ({n // DOAJ_RIGHTS_CHUNK + 1}/{n_chunks})")
+        try:
+            meta = json.loads(fetch(url, stage, log))
+            for j in meta.get("results", []):
+                jbib = j.get("bibjson", {})
+                lic = (jbib.get("license") or [{}])[0].get("type", "")
+                # A DOAJ journal record carries its ISSNs as ``pissn`` /
+                # ``eissn`` (there is no ``issns`` array), so both fields
+                # together are the record's ISSN set.
+                j_issns = [i for i in (jbib.get("pissn"), jbib.get("eissn"))
+                           if i]
+                # A DOAJ journal's ``publisher`` is a {country, name} object.
+                pub = jbib.get("publisher")
+                if isinstance(pub, dict):
+                    pub = pub.get("name", "")
+                for issn in j_issns:
+                    seen[issn] = (lic, pub or "")
+        except ValueError:
+            log("[reference_corpora] WARNING: DOAJ journal response was not "
+                "JSON; this batch's journals are recorded unverified")
+        stage.unlink(missing_ok=True)
+    for issn, chunk_rows in issn_rows.items():
+        hit = seen.get(issn)
+        for row in chunk_rows:
+            if hit is None:
+                row["license"] = ""
+                row["license_class"] = "unverified"
+                row["verified_via"] = ("DOAJ journal record (no record "
+                                       "returned)")
+            else:
+                lic, publisher = hit
+                row["publisher"] = publisher or row["publisher"]
+                row["license"] = lic
+                row["license_class"] = doaj_rights_class(lic)
+                row["verified_via"] = "DOAJ journal record"
+            row["verified_at"] = today_iso()
+    for row in rows:
+        if row["verified_via"] == "DOAJ journal record (no ISSN on the record)":
+            row["verified_at"] = today_iso()
+    return rows
+
+
+def write_doaj_rights(path: Path, rows) -> str:
+    """Write the per-record licence ledger (sorted by DOI); returns a summary.
+
+    The ledger is keyed by DOI, so a DOI the DOAJ index repeats (the snapshot
+    contains two) collapses to one row: the licence is a property of the
+    record, not of the copy.
+    """
+    by_doi = {}
+    for r in rows:
+        by_doi.setdefault(r["doi"], r)
+    ordered = sorted(by_doi.values(), key=lambda r: r["doi"])
+    write_tsv(path, DOAJ_RIGHTS_HEADER, ordered)
+    counts = {}
+    for r in ordered:
+        counts[r["license_class"]] = counts.get(r["license_class"], 0) + 1
+    return ", ".join(f"{n} {c}" for c, n in sorted(counts.items()))
+
+
+def read_doaj_rights(path: Path) -> list:
+    """Ledger rows in file order; [] when absent or unreadable."""
+    if not path.exists():
+        return []
+    out = []
+    with path.open(encoding="utf-8") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+        for line in fh:
+            if not line.strip():
+                continue
+            row = dict(zip(header, line.rstrip("\n").split("\t")))
+            if row.get("doi"):
+                out.append(row)
+    return out
+
+
+def parse_records_from_corpus(data: bytes) -> list:
+    """Record dicts read back out of a corpus file, in file order.
+
+    The header lines carry journal, year, language, DOI and ISSNs, so a
+    cached corpus re-resolves its licences from its own bytes: no re-fetch
+    of the corpus is needed to re-verify the rights position.  (The abstract
+    itself is not needed for a licence lookup.)
+    """
+    text = data.decode("utf-8", errors="replace")
+    records = []
+    for line in text.splitlines():
+        m = RECORD_HEADER_RE.match(line)
+        if not m:
+            continue
+        issn = m.group("issn")
+        records.append({
+            "doi": m.group("doi"),
+            "journal": m.group("journal"),
+            "publisher": "",
+            "year": m.group("year"),
+            "language": m.group("language"),
+            "issns": [] if issn == "-" else [i for i in issn.split("/") if i],
+        })
+    return records
+
+
+def parse_dois(data: bytes) -> list:
+    """The DOIs a corpus file carries, in file order.
+
+    The corpus file's per-record header names the record's DOI, so the key
+    set is recoverable from the cached bytes -- which is what binds a cached
+    corpus to the ledger that covers it.
+    """
+    return list(dict.fromkeys(r["doi"] for r in parse_records_from_corpus(data)))
+
+
+def doaj_rights_ledger_covers(path: Path, dois) -> bool:
+    """True when the ledger holds exactly the corpus's DOI set.
+
+    The DOI set, not the row count: the corpus file is record-per-abstract
+    (a DOI the DOAJ index repeats appears twice in the register text), while
+    the ledger is keyed by DOI.
+    """
+    ledger = read_doaj_rights(path)
+    covered = {r["doi"] for r in ledger}
+    return bool(dois) and covered == set(dois)
 
 
 # ---------------------------------------------------------------------------
@@ -456,20 +964,29 @@ def build_excerpts(log=print) -> list:
     return rows
 
 
-def build_medical(log=print) -> list:
-    """Fetch PubMed abstracts via E-utilities (open access).
+def build_medical(log=print, allow_download: bool = True) -> list:
+    """Fetch PubMed abstracts via E-utilities and verify their rights.
 
     The efetch step batches the PMIDs (a single GET with 1,000 ids exceeds
     the URI length limit and returns HTTP 414), so abstracts are pulled in
     chunks of 200 and concatenated.
+
+    The corpus is only usable once its rights are per-record facts, so this
+    builder maintains ``medical/rights.tsv`` alongside it (#78): a fresh fetch
+    re-verifies every record it fetched, a cached corpus keeps its ledger when
+    the ledger still covers exactly its PMIDs, and a stale or missing ledger is
+    re-verified in download mode or reported as a warning under
+    ``--no-download`` -- never assumed open access.  See docs/medical-corpus.md.
     """
     dest = OUT / "medical"
     dest.mkdir(parents=True, exist_ok=True)
     dst = dest / "pubmed_abstracts.txt"
+    ledger = OUT / RIGHTS_FILE
     base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
     term = urllib.parse.quote(PUBMED_QUERY)
     esearch = (f"{base}/esearch.fcgi?db=pubmed&term={term}"
                f"&retmax={PUBMED_RETMAX}&retmode=json&sort=pub_date")
+    fresh = False
     if corpus_ok(dst, MIN_TOKENS["medical"]):
         data = dst.read_bytes()
         log("[reference_corpora] medical corpus cached")
@@ -493,6 +1010,23 @@ def build_medical(log=print) -> list:
         # Raises (leaving any earlier corpus intact) if PubMed returned an
         # empty or truncated body.
         write_corpus(dst, data, MIN_TOKENS["medical"], log)
+        fresh = True
+    # Rights are a property of the *snapshot*, so the ledger is checked against
+    # the PMIDs actually present, whatever mode produced them.
+    pmids = parse_pmids(data)
+    if not rights_ledger_covers(ledger, pmids):
+        if fresh or allow_download:
+            summary = write_rights(ledger, fetch_rights(pmids, dest, log))
+            log(f"[reference_corpora] medical rights ledger: {len(pmids)} "
+                f"records verified ({summary}) -> {ledger}")
+        else:
+            log(f"[reference_corpora] WARNING: {RIGHTS_FILE} is missing or "
+                f"stale for the cached medical corpus and --no-download is "
+                f"set; the corpus is kept, but its rights stay unverified per "
+                f"record (re-run without --no-download to verify them)")
+    else:
+        log(f"[reference_corpora] medical rights ledger covers "
+            f"{len(pmids)} records ({ledger})")
     return [live_row("medical", data)]
 
 
@@ -559,11 +1093,14 @@ def build_cs(log=print) -> list:
 
 
 def build_legal(log=print, allow_download: bool = True) -> list:
-    """Download the public-domain legal / political register texts.
+    """Download the public-domain **historical** legal / political register.
 
-    With ``allow_download=False`` the builder is cache-only: a text that is
-    not already under ``legal/`` is skipped with a warning instead of being
-    fetched, and the network is never touched.
+    These are 1215-1850 full texts, kept as the historical legal pole
+    (#79); the modern legal-abstract register is built separately from DOAJ
+    (``build_legal_abstracts``).  With ``allow_download=False`` the builder
+    is cache-only: a text that is not already under ``legal/`` is skipped
+    with a warning instead of being fetched, and the network is never
+    touched.
     """
     dest = OUT / "legal"
     dest.mkdir(parents=True, exist_ok=True)
@@ -590,6 +1127,100 @@ def build_legal(log=print, allow_download: bool = True) -> list:
             "sha256": sha256_bytes(clean), "bytes": len(clean),
         })
     return rows
+
+
+def fetch_doaj_pages(log=print) -> list:
+    """The DOAJ article-search pages for ``DOAJ_QUERY``, recency-sorted.
+
+    Staged beside the destination and unlinked by the caller, like the
+    efetch chunks: an interrupted run must never leave raw JSON where a
+    corpus belongs.
+    """
+    dest = OUT / "legal_abstracts"
+    dest.mkdir(parents=True, exist_ok=True)
+    pages = []
+    n_pages = DOAJ_MAX // DOAJ_PAGE
+    for page in range(1, n_pages + 1):
+        url = (DOAJ_SEARCH.format(query=urllib.parse.quote(DOAJ_QUERY))
+               + f"?pageSize={DOAJ_PAGE}&page={page}"
+                 f"&sort=created_date:desc")
+        log(f"[reference_corpora] querying DOAJ: {DOAJ_QUERY} "
+            f"(page {page}/{n_pages})")
+        pages.append(download(url, dest / f"_doaj_{page}.json", log))
+    return pages
+
+
+def build_legal_abstracts(log=print, allow_download: bool = True) -> list:
+    """Fetch DOAJ law-journal abstracts; resolve their licences per journal.
+
+    The query is recency-sorted, so the stable unit is the pinned snapshot:
+    a rebuild that fetches different bytes is reported as drift by the
+    orchestrator, not silently substituted (#80's mechanism).  DOAJ
+    editorial stubs and non-English abstracts are skipped by the selection
+    rule (``MIN_ABSTRACT_WORDS``), so they appear in neither file.
+
+    The register is open access as a matter of DOAJ policy, but the licence
+    is a per-journal fact, so this builder maintains
+    ``legal_abstracts/rights.tsv`` alongside the corpus (#79): a fresh fetch
+    resolves every journal it fetched; a cached corpus keeps its ledger when
+    the ledger still covers exactly the corpus's DOIs, and a stale or
+    missing ledger is re-resolved in download mode or reported as a warning
+    under ``--no-download`` -- never assumed open.  See
+    docs/legal-corpus.md.
+    """
+    dest = OUT / "legal_abstracts"
+    dest.mkdir(parents=True, exist_ok=True)
+    dst = dest / "legal_abstracts.txt"
+    ledger = OUT / DOAJ_RIGHTS_FILE
+    fresh_rows = None
+    if corpus_ok(dst, MIN_TOKENS["legal_abstracts"]):
+        data = dst.read_bytes()
+        log("[reference_corpora] legal_abstracts corpus cached")
+    elif not allow_download:
+        log("[reference_corpora] WARNING: legal_abstracts/"
+            "legal_abstracts.txt not cached and --no-download set; "
+            "skipping (re-run without --no-download to fetch DOAJ)")
+        return []
+    else:
+        pages = fetch_doaj_pages(log)
+        for f in dest.glob("_doaj_*.json"):
+            f.unlink(missing_ok=True)
+        records = parse_doaj_records(pages)
+        # ``fetch=download`` is passed through rather than left as the default
+        # argument: the default is bound at definition time, so it would
+        # bypass a test-level patch of the module's download helper.
+        fresh_rows = resolve_doaj_licences(records, log, fetch=download)
+        # Raises (leaving any earlier corpus intact) if the pages yielded too
+        # little register text to be a corpus.
+        write_corpus(dst, doaj_corpus_bytes(records),
+                     MIN_TOKENS["legal_abstracts"], log)
+        data = dst.read_bytes()
+    # Rights are a property of the *snapshot*, so the ledger is checked
+    # against the records actually present, whatever mode produced them.
+    # The corpus is record-per-abstract while the ledger is keyed by DOI, so
+    # the counts reported below are distinct DOIs.
+    records = parse_records_from_corpus(data)
+    dois = list(dict.fromkeys(r["doi"] for r in records))
+    if fresh_rows is not None:
+        summary = write_doaj_rights(ledger, fresh_rows)
+        log(f"[reference_corpora] legal_abstracts rights ledger: "
+            f"{len(dois)} records verified ({summary}) -> {ledger}")
+    elif not doaj_rights_ledger_covers(ledger, dois):
+        if allow_download:
+            summary = write_doaj_rights(
+                ledger, resolve_doaj_licences(records, log, fetch=download))
+            log(f"[reference_corpora] legal_abstracts rights ledger: "
+                f"{len(dois)} records verified ({summary}) -> {ledger}")
+        else:
+            log(f"[reference_corpora] WARNING: {DOAJ_RIGHTS_FILE} is missing "
+                f"or stale for the cached legal_abstracts corpus and "
+                f"--no-download is set; the corpus is kept, but its licences "
+                f"stay unverified per record (re-run without --no-download "
+                f"to verify them)")
+    else:
+        log(f"[reference_corpora] legal_abstracts rights ledger covers "
+            f"{len(dois)} records ({ledger})")
+    return [live_row("legal_abstracts", data)]
 
 
 # ---------------------------------------------------------------------------
@@ -677,13 +1308,28 @@ def ensure_corpora(allow_download: bool = True, log=print) -> list:
     rows += build_excerpts(log)
     rows += build_legal(log, allow_download)
     if allow_download:
-        rows += build_medical(log)
+        rows += build_medical(log, allow_download)
         rows += build_cs(log)
+        rows += build_legal_abstracts(log, allow_download)
     else:
         for corpus, rel in LIVE_FILES.items():
             p = OUT / rel
             if corpus_ok(p, MIN_TOKENS[corpus]):
                 rows.append(live_row(corpus, p.read_bytes()))
+                if corpus == "legal_abstracts":
+                    # Cache-only still checks the rights position: the DOI
+                    # set comes from the corpus file itself, so the check
+                    # needs no network, and a stale ledger is reported
+                    # rather than silently assumed current.
+                    dois = parse_dois(p.read_bytes())
+                    if not doaj_rights_ledger_covers(
+                            OUT / DOAJ_RIGHTS_FILE, dois):
+                        log(f"[reference_corpora] WARNING: "
+                            f"{DOAJ_RIGHTS_FILE} is missing or stale for the "
+                            f"cached legal_abstracts corpus and "
+                            f"--no-download is set; the corpus is kept, but "
+                            f"its licences stay unverified per record "
+                            f"(re-run without --no-download to verify them)")
             else:
                 # A cached file that fails the gate is worse than no file: it
                 # would be counted as reference text.  Report and skip.

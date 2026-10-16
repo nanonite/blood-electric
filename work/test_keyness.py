@@ -252,7 +252,8 @@ class TestKeynessManifestReconciliation(unittest.TestCase):
                     for ln in fh if ln.strip()]
         # load_reference_words strips # / -- header lines from excerpt files,
         # so only the prose corpora must reconcile exactly.
-        for corpus in ("general_english", "medical", "cs", "legal"):
+        for corpus in ("general_english", "medical", "cs", "legal",
+                       "legal_abstracts"):
             ref = kn.load_reference_words(corpus, log=lambda m: None)
             expected = sum(int(r["tokens"]) for r in rows
                            if r["corpus"] == corpus)
@@ -303,6 +304,7 @@ class TestReferenceCores(unittest.TestCase):
             "medical": [{"word": "cadaver"}],
             "cs": [{"word": "cadaver"}],
             "legal": [{"word": "cadaver"}],
+            "legal_abstracts": [{"word": "cadaver"}],
             "cyberpunk": [],
             "cutup_surrealist": [],
             "finnegans_wake": [],
@@ -313,6 +315,39 @@ class TestReferenceCores(unittest.TestCase):
         core, _inferential, ge_only = kn.reference_cores(per, lists)
         self.assertEqual(core, ["cadaver"])
         self.assertEqual(ge_only, ["codes"])
+
+    def test_modern_legal_register_decides_residue(self):
+        """#79: a modern legal-abstract register decides what a historical one cannot.
+
+        ``discharge`` and ``reverse`` are ordinary modern legal-register words
+        (discharge of a contract; appellate reversal) but not words of
+        18th-19th-century legal/political prose, so they sit in the residue
+        while the historical ``legal`` corpus is the only legal register.  The
+        modern ``legal_abstracts`` corpus is what removes them from it.
+        """
+        lists = {
+            "general_english": [{"word": "codes"}, {"word": "discharge"},
+                                {"word": "reverse"}, {"word": "cadaver"}],
+            "medical": [{"word": "cadaver"}],
+            "cs": [{"word": "cadaver"}],
+            # the historical legal/political register uses neither word
+            "legal": [{"word": "cadaver"}],
+            # the modern law-journal register uses both
+            "legal_abstracts": [{"word": "cadaver"}, {"word": "discharge"},
+                                {"word": "reverse"}],
+            "cyberpunk": [],
+            "cutup_surrealist": [],
+            "finnegans_wake": [],
+        }
+        per = self._per_corpus(cyberpunk={"tokens": 105},
+                               cutup_surrealist={"tokens": 56},
+                               finnegans_wake={"tokens": 49})
+        _core, _inferential, ge_only = kn.reference_cores(per, lists)
+        self.assertEqual(ge_only, ["codes"])
+        # and without the modern register the same words are residue
+        lists["legal_abstracts"] = [{"word": "cadaver"}]
+        _core, _inferential, ge_only = kn.reference_cores(per, lists)
+        self.assertEqual(ge_only, ["codes", "discharge", "reverse"])
 
     def test_section_flags_small_corpora_and_still_reports_a_core(self):
         per = self._per_corpus(cyberpunk={"tokens": 105},
@@ -422,8 +457,24 @@ class TestFullRun(unittest.TestCase):
         for small in ("cyberpunk", "cutup_surrealist", "finnegans_wake"):
             self.assertIn(small, text)
         # Every inferential corpus contributes a full top-N list.
-        for corpus in ("general_english", "medical", "cs", "legal"):
+        for corpus in ("general_english", "medical", "cs", "legal",
+                       "legal_abstracts"):
             self.assertIn(f"| {corpus} |", text)
+
+    def test_report_labels_the_two_legal_registers_accurately(self):
+        """#79: the historical texts are not described as modern legal writing.
+
+        The keyness report's old residue sentence called the legal register
+        modern legal writing; the register is 1215-1850 public-domain prose.
+        The report must name the two registers for what they are and let a
+        reader see which corpora decide the residue.
+        """
+        text = (self.out / "keyness_report.md").read_text()
+        self.assertIn("is *historical*", text)
+        self.assertIn("is *modern*", text)
+        self.assertNotIn("modern medical, CS or legal writing", text)
+        # the residue sentence names the modern registers that decide it
+        self.assertIn("`medical`, `cs`, `legal_abstracts`", text)
 
 
 if __name__ == "__main__":
