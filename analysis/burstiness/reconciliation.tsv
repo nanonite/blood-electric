@@ -21,3 +21,6 @@ matched N vs #24 english_baseline [dorian_gray]	74318	74318	ok	matched-N prefix
 matched N vs #24 english_baseline [ulysses]	74318	74318	ok	matched-N prefix
 book growth curve monotone	ascending	ascending	ok	cumulative type count
 entity locate deltas	0	0	ok	none
+nested overlap fits inside the parent entity	no overflow	no overflow	ok	an entity cannot share more positions than it has
+ADAM occurrences inside ADAM Doll	present	present	ok	166 of 303 occurrences shared
+Sato occurrences inside Sato Corporation	present	present	ok	26 of 29 occurrences shared

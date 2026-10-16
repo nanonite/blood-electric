@@ -12,12 +12,17 @@
     "book_units_logk": 1.969977682837242,
     "book_units_r2": 0.9948144327915583,
     "book_units_beta_loo_sd": 0.0007606990443589927,
+    "book_units_beta_loo_se": 0.011385100793750812,
+    "book_units_beta_loo_mean": 0.6027141891353615,
+    "book_units_beta_loo_bias": -2.1653541629751416e-06,
     "book_units_beta_loo_min": 0.5995939548049956,
     "book_units_beta_loo_max": 0.6094697455862494,
     "book_coinage_beta": 0.8352054911126797,
     "english_mean_beta": 0.6366396673059574,
     "english_beta_min": 0.5403826766039351,
     "english_beta_max": 0.7465706445145054,
+    "english_beta_se_min": 0.007890381948199755,
+    "english_beta_se_max": 0.020250567684444613,
     "english_beta_references": 8,
     "entity_layer_beta": 0.3668264257669996,
     "entity_layer_logk": 1.7175009598507072,
@@ -49,14 +54,19 @@
       0.8571428571428571,
       1.0
     ],
-    "entity_first_attestation_by_stream_third": [
+    "entity_first_attestation_by_token_third": [
       64,
       17,
       17
+    ],
+    "entity_first_attestation_by_mention_third": [
+      64,
+      20,
+      14
     ]
   },
   "burstiness": {
-    "nulls": 200,
+    "nulls": 2000,
     "fano_windows": [
       100,
       500,
@@ -64,10 +74,12 @@
     ],
     "n_floor": 8,
     "entities_tested": 39,
+    "even_f_cut": 0.9,
+    "entities_below_even_f": 6,
     "entity_median_fano_1000": 1.417879417879418,
     "bursty": 20,
-    "even": 6,
-    "neutral": 13,
+    "even": 0,
+    "neutral": 19,
     "median_b": 0.11932594356355873,
     "top_burst": {
       "entity": "retro-ADAM",
@@ -76,18 +88,80 @@
       "first_page": 87,
       "last_page": 176
     },
+    "channels": [
+      {
+        "label": "entity_channel",
+        "kind": "entity",
+        "n_positions": 1988,
+        "rate": 0.026836939940872336,
+        "fano": {
+          "fano_100": 1.0979549504209793,
+          "fano_500": 2.098732980590052,
+          "fano_1000": 3.0183013914770336
+        },
+        "null_fano_median": 0.9488297567153471,
+        "null_fano_q05": 0.7120320017445585,
+        "null_fano_q95": 1.2475841953905493,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
+        "burstiness_b": 0.021857174856244922,
+        "verdict": "bursty"
+      },
+      {
+        "label": "english_word_channel",
+        "kind": "english_word",
+        "n_positions": 26587,
+        "rate": 0.35891032304223985,
+        "fano": {
+          "fano_100": 0.72351684980679,
+          "fano_500": 1.8655990019600723,
+          "fano_1000": 2.811661667312565
+        },
+        "null_fano_median": 0.6264288665041321,
+        "null_fano_q05": 0.464633408111669,
+        "null_fano_q95": 0.8227972586116326,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
+        "burstiness_b": -0.17847502806016033,
+        "verdict": "neutral"
+      },
+      {
+        "label": "coinage_type_channel",
+        "kind": "coinage_type",
+        "n_positions": 1888,
+        "rate": 0.02548699326376608,
+        "fano": {
+          "fano_100": 1.2198350893266146,
+          "fano_500": 2.3258703618873113,
+          "fano_1000": 3.5383932661475037
+        },
+        "null_fano_median": 0.9527798128723275,
+        "null_fano_q05": 0.7089898917485126,
+        "null_fano_q95": 1.2316233430883112,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
+        "burstiness_b": 0.078347474360675,
+        "verdict": "bursty"
+      }
+    ],
     "channel": {
+      "label": "entity_channel",
+      "kind": "entity",
       "n_positions": 1988,
-      "mentions": 2452,
       "rate": 0.026836939940872336,
       "fano": {
         "fano_100": 1.0979549504209793,
         "fano_500": 2.098732980590052,
         "fano_1000": 3.0183013914770336
       },
-      "null_fano_median": 0.9788791812960996,
-      "p_bursty": 0.004975124378109453,
-      "verdict": "neutral"
+      "null_fano_median": 0.9488297567153471,
+      "null_fano_q05": 0.7120320017445585,
+      "null_fano_q95": 1.2475841953905493,
+      "p_bursty": 0.0004997501249375312,
+      "p_even": 1.0,
+      "burstiness_b": 0.021857174856244922,
+      "verdict": "bursty",
+      "mentions": 2452
     },
     "controls": [
       {
@@ -102,8 +176,10 @@
         "fano_100": 0.6754125119367519,
         "fano_500": 1.3033156410313353,
         "fano_1000": 1.6156699016189564,
-        "null_fano_median": 0.9863923849204363,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.8501732750753371,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "neutral"
       },
       {
@@ -118,8 +194,10 @@
         "fano_100": 0.7679836120881727,
         "fano_500": 1.4748210390590815,
         "fano_1000": 1.954833031028804,
-        "null_fano_median": 0.9754453877131973,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.8723647621659194,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "neutral"
       },
       {
@@ -134,8 +212,10 @@
         "fano_100": 0.9579540452504623,
         "fano_500": 1.46403732722951,
         "fano_1000": 1.9305176512016906,
-        "null_fano_median": 0.9857539769351484,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9489198645733615,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "neutral"
       },
       {
@@ -150,8 +230,10 @@
         "fano_100": 1.1609457133553518,
         "fano_500": 2.29354095920361,
         "fano_1000": 3.455125521390582,
-        "null_fano_median": 0.9930164918925934,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9508514849225091,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -166,8 +248,10 @@
         "fano_100": 1.2217191714007,
         "fano_500": 2.250846387789063,
         "fano_1000": 2.616342457106789,
-        "null_fano_median": 0.9961547621187339,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9666459361477071,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "neutral"
       },
       {
@@ -182,8 +266,10 @@
         "fano_100": 0.9666353989564401,
         "fano_500": 1.3060620273201617,
         "fano_1000": 1.6837075687401066,
-        "null_fano_median": 0.9686229086229086,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9658944658944659,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0009995002498750624,
+        "p_even": 0.9995002498750625,
         "verdict": "bursty"
       },
       {
@@ -198,8 +284,10 @@
         "fano_100": 0.8896438941893487,
         "fano_500": 1.2109113245476881,
         "fano_1000": 1.6296148568875843,
-        "null_fano_median": 0.9952822645130337,
-        "p_bursty": 0.009950248756218905,
+        "null_fano_median": 0.9660965570056479,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -214,8 +302,10 @@
         "fano_100": 1.0659395019142563,
         "fano_500": 1.4531196694590804,
         "fano_1000": 1.9427049770668283,
-        "null_fano_median": 0.9640339649038852,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9693529434062393,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -230,8 +320,10 @@
         "fano_100": 0.8475403975403978,
         "fano_500": 0.8867319700653034,
         "fano_1000": 1.1191429524762857,
-        "null_fano_median": 0.961033635916265,
-        "p_bursty": 0.21393034825870647,
+        "null_fano_median": 0.9686905215074231,
+        "null_fano_tie_share": 0.0005,
+        "p_bursty": 0.1794102948525737,
+        "p_even": 0.8215892053973014,
         "verdict": "neutral"
       },
       {
@@ -246,8 +338,10 @@
         "fano_100": 0.796477705141965,
         "fano_500": 0.9137964679480923,
         "fano_1000": 0.9070153185676652,
-        "null_fano_median": 0.9664483651825424,
-        "p_bursty": 0.6368159203980099,
+        "null_fano_median": 0.9628317286545134,
+        "null_fano_tie_share": 0.001,
+        "p_bursty": 0.6416791604197901,
+        "p_even": 0.3598200899550225,
         "verdict": "neutral"
       },
       {
@@ -263,7 +357,9 @@
         "fano_500": 1.4557486057486058,
         "fano_1000": 2.076576576576577,
         "null_fano_median": 0.9781638781638781,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -278,8 +374,10 @@
         "fano_100": 0.8740681858328917,
         "fano_500": 1.5468115173997525,
         "fano_1000": 2.341989047871401,
-        "null_fano_median": 0.9629040805511394,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9767390341160832,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -294,8 +392,10 @@
         "fano_100": 1.1423314317777986,
         "fano_500": 1.5663284391658094,
         "fano_1000": 2.0980548022070513,
-        "null_fano_median": 0.9769475357710653,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9700271205461518,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -310,24 +410,10 @@
         "fano_100": 0.8736055204140308,
         "fano_500": 1.0807935595169638,
         "fano_1000": 1.4275445658424382,
-        "null_fano_median": 0.9700977573318,
-        "p_bursty": 0.009950248756218905,
-        "verdict": "bursty"
-      },
-      {
-        "kind": "coinage_type",
-        "term": "retro-ADAM",
-        "n": 165,
-        "n_pages": 43,
-        "mean_gap": 182.9390243902439,
-        "max_gap": 11526,
-        "gap_cv": 5.012907770298304,
-        "burstiness_b": 0.6673822256380995,
-        "fano_100": 1.370966420966421,
-        "fano_500": 5.085135135135134,
-        "fano_1000": 9.824815724815723,
-        "null_fano_median": 0.9667106130520765,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9807360552041404,
+        "null_fano_tie_share": 0.0005,
+        "p_bursty": 0.0079960019990005,
+        "p_even": 0.9930034982508745,
         "verdict": "bursty"
       },
       {
@@ -342,9 +428,11 @@
         "fano_100": 0.9711857018308631,
         "fano_500": 1.0881865736704446,
         "fano_1000": 1.279598953792502,
-        "null_fano_median": 0.9957279860505667,
-        "p_bursty": 0.07462686567164178,
-        "verdict": "neutral"
+        "null_fano_median": 0.9699215344376634,
+        "null_fano_tie_share": 0.0045,
+        "p_bursty": 0.041979010494752625,
+        "p_even": 0.9630184907546226,
+        "verdict": "bursty"
       },
       {
         "kind": "coinage_type",
@@ -359,7 +447,9 @@
         "fano_500": 1.2377236391320896,
         "fano_1000": 1.5036162923486867,
         "null_fano_median": 0.968405024743053,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_tie_share": 0.0005,
+        "p_bursty": 0.0024987506246876563,
+        "p_even": 0.9985007496251874,
         "verdict": "bursty"
       },
       {
@@ -374,24 +464,10 @@
         "fano_100": 0.983277027027027,
         "fano_500": 1.603885135135135,
         "fano_1000": 2.02027027027027,
-        "null_fano_median": 0.9421452702702703,
-        "p_bursty": 0.004975124378109453,
-        "verdict": "bursty"
-      },
-      {
-        "kind": "coinage_type",
-        "term": "ToKAGE",
-        "n": 127,
-        "n_pages": 84,
-        "mean_gap": 579.0079365079365,
-        "max_gap": 6445,
-        "gap_cv": 1.6318809335468827,
-        "burstiness_b": 0.24008720360131247,
-        "fano_100": 1.0645988508193232,
-        "fano_500": 1.4017344115769315,
-        "fano_1000": 2.0081932326026815,
-        "null_fano_median": 0.9688231538625239,
-        "p_bursty": 0.004975124378109453,
+        "null_fano_median": 0.9733952702702702,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0004997501249375312,
+        "p_even": 1.0,
         "verdict": "bursty"
       },
       {
@@ -406,9 +482,47 @@
         "fano_100": 1.009851787271142,
         "fano_500": 1.0492589363557108,
         "fano_1000": 1.2436791630340018,
-        "null_fano_median": 0.9694856146469051,
-        "p_bursty": 0.07960199004975124,
+        "null_fano_median": 0.9801142606020655,
+        "null_fano_tie_share": 0.0115,
+        "p_bursty": 0.0734632683658171,
+        "p_even": 0.9385307346326837,
         "verdict": "neutral"
+      },
+      {
+        "kind": "coinage_type",
+        "term": "body-OMOTYA",
+        "n": 121,
+        "n_pages": 91,
+        "mean_gap": 608.9,
+        "max_gap": 11550,
+        "gap_cv": 1.8660587442870922,
+        "burstiness_b": 0.3021775970270689,
+        "fano_100": 0.9687178914451642,
+        "fano_500": 1.2733415233415233,
+        "fano_1000": 1.6293276747822203,
+        "null_fano_median": 0.9846995756086665,
+        "null_fano_tie_share": 0.0,
+        "p_bursty": 0.0009995002498750624,
+        "p_even": 0.9995002498750625,
+        "verdict": "bursty"
+      },
+      {
+        "kind": "coinage_type",
+        "term": "suck=blood",
+        "n": 120,
+        "n_pages": 85,
+        "mean_gap": 615.9747899159664,
+        "max_gap": 12051,
+        "gap_cv": 1.9496451020825611,
+        "burstiness_b": 0.3219523262008965,
+        "fano_100": 0.9545045045045043,
+        "fano_500": 1.0391891891891891,
+        "fano_1000": 1.3117117117117114,
+        "null_fano_median": 0.9783783783783782,
+        "null_fano_tie_share": 0.0065,
+        "p_bursty": 0.038980509745127435,
+        "p_even": 0.968015992003998,
+        "verdict": "bursty"
       }
     ],
     "controls_summary": {
@@ -421,12 +535,102 @@
       },
       "coinage_type": {
         "n": 10,
-        "bursty": 8,
-        "median_fano_1000": 2.014231751436476,
-        "max_fano_1000": 9.824815724815723,
-        "median_b": 0.18224019703151154
+        "bursty": 9,
+        "median_fano_1000": 1.5664719835654535,
+        "max_fano_1000": 2.341989047871401,
+        "median_b": 0.21328539374438976
       }
     },
+    "nested_entities": [
+      {
+        "entity": "cadaver",
+        "nested_in": "Cadaver City",
+        "n_shared": 191,
+        "n_entity": 441,
+        "n_excl_nested": 250,
+        "fano_1000_all": 2.138046209474781,
+        "fano_1000_excl_nested": 4.565621621621621,
+        "burstiness_b_all": 0.03666000853982414,
+        "burstiness_b_excl_nested": 0.21674192862900812
+      },
+      {
+        "entity": "ADAM",
+        "nested_in": "ADAM Doll",
+        "n_shared": 166,
+        "n_entity": 303,
+        "n_excl_nested": 137,
+        "fano_1000_all": 4.245339398804746,
+        "fano_1000_excl_nested": 2.8712763858749266,
+        "burstiness_b_all": 0.3741168949308688,
+        "burstiness_b_excl_nested": 0.28284205333129997
+      },
+      {
+        "entity": "Placenta",
+        "nested_in": "Placenta World",
+        "n_shared": 58,
+        "n_entity": 71,
+        "n_excl_nested": 13,
+        "fano_1000_all": 1.75885039969547,
+        "fano_1000_excl_nested": 1.132016632016632,
+        "burstiness_b_all": 0.2809482875311295,
+        "burstiness_b_excl_nested": 0.056215816993079454
+      },
+      {
+        "entity": "Sato",
+        "nested_in": "Sato Corporation",
+        "n_shared": 26,
+        "n_entity": 29,
+        "n_excl_nested": 3,
+        "fano_1000_all": 0.8839701770736252,
+        "fano_1000_excl_nested": 0.9594594594594593,
+        "burstiness_b_all": -0.1754135742797013,
+        "burstiness_b_excl_nested": null
+      },
+      {
+        "entity": "cadaver",
+        "nested_in": "Cadaver City-city",
+        "n_shared": 12,
+        "n_entity": 441,
+        "n_excl_nested": 429,
+        "fano_1000_all": 2.138046209474781,
+        "fano_1000_excl_nested": 2.237667737667737,
+        "burstiness_b_all": 0.03666000853982414,
+        "burstiness_b_excl_nested": 0.040810690198749146
+      },
+      {
+        "entity": "ADAM",
+        "nested_in": "ADAM Dolls",
+        "n_shared": 5,
+        "n_entity": 303,
+        "n_excl_nested": 298,
+        "fano_1000_all": 4.245339398804746,
+        "fano_1000_excl_nested": 4.18102666424814,
+        "burstiness_b_all": 0.3741168949308688,
+        "burstiness_b_excl_nested": 0.3706795562985984
+      },
+      {
+        "entity": "sodom",
+        "nested_in": "SODOM Doll",
+        "n_shared": 4,
+        "n_entity": 12,
+        "n_excl_nested": 8,
+        "fano_1000_all": 1.171171171171171,
+        "fano_1000_excl_nested": 1.1418918918918919,
+        "burstiness_b_all": -0.013122008651593475,
+        "burstiness_b_excl_nested": 0.16342249210099974
+      },
+      {
+        "entity": "ADAM",
+        "nested_in": "ADAM DolI",
+        "n_shared": 2,
+        "n_entity": 303,
+        "n_excl_nested": 301,
+        "fano_1000_all": 4.245339398804746,
+        "fano_1000_excl_nested": 4.261336086917482,
+        "burstiness_b_all": 0.3741168949308688,
+        "burstiness_b_excl_nested": 0.3726225100577289
+      }
+    ],
     "densest_page_clusters": [
       {
         "entity": "ADAM",

@@ -1,14 +1,17 @@
 item	value	note
 schema	burstiness-heaps/1	burstiness-heaps artifact schema
 seed	53	null draws seeded SEED + crc32(term)
-nulls_per_entity	200	relocation draws for the burst test
+nulls_per_entity	2000	placement draws per tested term
 fano_windows	100|500|1000	non-overlapping window widths (tokens)
 min_windows	20	a Fano factor needs >= this many windows
 min_n	8	recurrence floor for the burstiness table
 segments	5	equal token segments for the novelty table
-p_level	0.05	one-sided burstiness significance
+p_level	0.05	one-sided significance, both tails
 b_level	0.0	B must exceed this for a bursty verdict
+even_f	0.9	descriptive cut only; `even` is the low-tail p
+control_top	10	control terms reported per population, entity surfaces excluded
 jackknife	on	leave-one-group-out beta uncertainty (pages for the book, 1000-token blocks for references)
+jackknife_se_rule	sd * sqrt(n - 1)	the plain sd across n refits is not the standard error
 stream_growth_n	74318	#24 screen (347 markup removals) -- growth layer
 stream_entity_n	74077	#27/#30 screen (588 markup removals) -- entity layer
 screen_delta	241	tag-run furniture the general detector removes and #19 does not list
@@ -17,4 +20,8 @@ entity_mentions	2452	located occurrences, summed over glossary rows
 entity_growth_points	40	checkpoints for the entity-layer Heaps fit
 entity_locate_deltas	0	rows whose located count != #30 n_occurrences
 english_refs_loaded	8	pinned #24 references at matched N
+control_entity_surfaces_dropped	ToKAGE (ToKAGE); retro-ADAM (retro-ADAM)	coinage/english control slots freed by removing glossary entity surfaces from the control set
 entity_channel_positions	1988	distinct token positions covered by any entity (overlapping entities counted once)
+english_word_channel_positions	26587	union of the 10 english_word control terms' positions
+coinage_type_channel_positions	1888	union of the 10 coinage_type control terms' positions
+entities_sharing_positions_with_a_longer_entity	5	occurrences counted under both a short and a long glossary surface - see nested_entities.tsv
