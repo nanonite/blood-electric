@@ -369,6 +369,29 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
   stamp.
 
 ### Fixed
+- Seam-loss evaluation reconciled to one source of truth (#77, follow-up to #17's review) — the
+  result comment posted on #17 scored the fused scope with a **page-level bag of baseline token
+  strings** instead of the offset-exact span rule the spec, `seam_loss.tsv` and the build all use,
+  so the record contradicted itself (`ws` 83.5%/22.2%/2.0% vs 77.6%/0.6%/0.1%; `sklearn` parts
+  90.3% vs 99.6%; `wordpunct` operator tokens 97.7% vs 76.6%). Regenerating from the current code
+  reproduces the published artifacts byte-for-byte, which settles which side was right: the bag
+  rule is *looser* for the case-preserving baselines (a same-page string elsewhere stands in for
+  the item, so `ws` earns 323 fused units and 2,400 parts it never emitted as tokens) and *too
+  harsh* for the real `CountVectorizer`, which lower-cases, so `Soul/gram` is simply absent from
+  its token set — 90.3% of fused parts against the span rule's 99.6%. The ranking, and therefore
+  the finding (each standard tokenizer keeps ≤ 2 of the three views; this one keeps all three from
+  one pass), is unchanged; only the magnitudes were wrong, and they flattered `ws` and `sklearn`.
+  `analysis/tokenizer/seam_loss.tsv` now carries the scopes the spec advertised — 56 rows, one
+  per `(scope, baseline)`, with a `scope` column (`overall` / `fused` / `class`) and a `class`
+  column: `fused` is the missing headline scope (5,433 units / 11,131 parts / 2,816 seams) and
+  `class` adds the per-class word-part and seam counts beside the unit counts. Book-level columns
+  (`n_tokens`, `ops_*`) are filled on the `overall` rows only, and the build asserts that the
+  `class` rows partition the book and `fused` + `plain` equals `overall` on all three numerators
+  and denominators. The corrected table is reposted on #17, §4.1 of `tokenizer_spec.md` now names
+  the file as the machine-readable home of both tables, §2.2 documents the `tokens.jsonl` `gap`
+  sparsity, and the suite (97 → **103** tests) pins the three scopes, the reconciliation, and a
+  cell-by-cell comparison of both spec tables against the file — the exact failure mode of this
+  follow-up.
 - Corpus-cache reproducibility and normalization in `work/reference_corpora.py` (#80, follow-up from
   #56's review) — three fixes. **(1) `--no-download` is now genuinely cache-only for every source.**
   It used to skip only the live PubMed / arXiv queries while `build_general_english` and

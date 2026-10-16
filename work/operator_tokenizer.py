@@ -52,7 +52,8 @@ Outputs under analysis/tokenizer/ (the path named in the #17 task text):
   units.tsv               one row per lexical unit (the analyzable unit)
   unit_types.tsv          unit type inventory (surface -> n, pages, class)
   part_index.tsv          one row per unit part (w / seam / join)
-  seam_loss.tsv           standard-tokenizer comparison, per unit class
+  seam_loss.tsv           standard-tokenizer comparison, overall + fused +
+                           per-class scopes (`scope` column)
   cases.tsv               named constructs, page-cited, with all three views
   case_examples.txt       readable renderings of each case
   diagnostics.tsv         tokenizer pressure ledger (orphans, spaced seams...)
@@ -1029,7 +1030,10 @@ def write_spec(S, out):
       "(`json.loads` it) - a raw gap can contain a newline, so a bare field "
       "would break a line-oriented reader; `tokens.jsonl` carries the same "
       "field already decoded, and `units.tsv` carries the unit surface with "
-      "`\\n`/tab escaped.\n")
+      "`\\n`/tab escaped.")
+    A("`tokens.jsonl` writes `gap` only when it is non-empty (the object is "
+      "sparse), so a reader must default it to `\"\"`; the TSV column is "
+      "dense and blank there.\n")
     A(f"The tail is the page text after its last token - the one span no gap can "
       f"carry - so it is published in `page_tails.tsv` "
       f"(`page`, `last_token_end`, `tail_json`, `n_chars`): {S['tail_chars']:,} "
@@ -1137,6 +1141,17 @@ def write_spec(S, out):
       f"100.0% ({fus0['parts']:,}/{fus0['parts']:,}) | 100.0% "
       f"({fus0['seams']:,}/{fus0['seams']:,}) |")
     A("")
+    A("Every rate in this section is a row of `seam_loss.tsv`, one row per "
+      "`(scope, baseline)`: `overall` for the table above, `fused` for this "
+      "one, and `class` (with the class named in the `class` column) for the "
+      "one below. The rows reconcile: the `class` rows partition the book and "
+      "`fused` + `plain` equals the `overall` row, for `n_units`, `n_parts`, "
+      "`n_seams` and the three kept-counts alike - asserted at build time. "
+      "`n_tokens` and the `ops_*` columns are book-level quantities - the "
+      "baseline's tokenization of all "
+      f"{S['n_pages']} pages - so they are filled on the `overall` rows only: "
+      "inside a scope the operator tokens are exactly the units' seams, which "
+      "the `seams_*` columns already carry.\n")
     A("This is the finding the issue asks for. `ws` keeps a fused unit as one "
       f"token but loses {100 - hdr['ws']['fused']['parts_kept']/fus0['parts']*100:.0f}% "
       "of its word parts, so the parts are unreachable. `wordpunct` keeps "
@@ -1156,6 +1171,9 @@ def write_spec(S, out):
         A(f"| `{r['class']}` | {r['n']:,} | " +
           " | ".join(f"{r['kept'][b]*100:.0f}%" for b in BASELINES) + " |")
     A("")
+    A("The `class` rows of `seam_loss.tsv` carry the same classes with the "
+      "word-part and seam counts beside them, so a class-by-class consumer does "
+      "not have to re-derive them from `units.tsv`.\n")
     A("### 4.2 Reconciliation with the earlier issues\n")
     A("| quantity | earlier | this tokenizer |")
     A("|---|---:|---:|")
@@ -1481,6 +1499,10 @@ def build(src=SRC, out=OUT, with_ast=True):
         n_tok_b = n_seams_t = n_parts_seen = 0
         cls_kept = collections.Counter()
         cls_tot = collections.Counter()
+        # the same three quantities, cut by unit class, so the per-class rows of
+        # `seam_loss.tsv` carry parts and seams and not only the unit view
+        cls_p, cls_p_ok = collections.Counter(), collections.Counter()
+        cls_s, cls_s_ok = collections.Counter(), collections.Counter()
         fused_u = fused_ok = 0
         fused_p = fused_p_ok = 0
         fused_s = fused_s_ok = 0
@@ -1513,6 +1535,8 @@ def build(src=SRC, out=OUT, with_ast=True):
                     if fused:
                         fused_p += 1
                         fused_p_ok += ok
+                    cls_p[u.cls] += 1
+                    cls_p_ok[u.cls] += ok
                 for t in u.toks:
                     if t.kind == "OP":
                         ok = (t.s, t.e) in bspans
@@ -1520,6 +1544,8 @@ def build(src=SRC, out=OUT, with_ast=True):
                         if fused:
                             fused_s += 1
                             fused_s_ok += ok
+                        cls_s[u.cls] += 1
+                        cls_s_ok[u.cls] += ok
                 if fused:
                     fused_u += 1
                     fused_ok += hit_u
@@ -1533,6 +1559,11 @@ def build(src=SRC, out=OUT, with_ast=True):
             "seams_kept_rate": kept_seam / n_seams_t if n_seams_t else 0.0,
             "ops_kept": op_kept, "n_ops": kinds["OP"],
             "class_kept": {c: (cls_kept[c], cls_tot[c]) for c in cls_tot},
+            "class_scope": {
+                c: {"units": cls_tot[c], "units_kept": cls_kept[c],
+                    "parts": cls_p[c], "parts_kept": cls_p_ok[c],
+                    "seams": cls_s[c], "seams_kept": cls_s_ok[c]}
+                for c in cls_tot},
             "fused": {"n": fused_u, "unit_kept": fused_ok,
                       "parts": fused_p, "parts_kept": fused_p_ok,
                       "seams": fused_s, "seams_kept": fused_s_ok},
@@ -1547,6 +1578,78 @@ def build(src=SRC, out=OUT, with_ast=True):
             k, t = L["class_kept"].get(c, (0, 0))
             kept[L["baseline"]] = (k / t) if t else 0.0
         class_seam_rows.append({"class": c, "n": r["n"], "kept": kept})
+
+    # ---- seam_loss.tsv: one row per (scope, baseline) -----------------------
+    # The file is the machine-readable home of every rate the spec publishes,
+    # so it carries the same three scopes: `overall` (all unit occurrences),
+    # `fused` (the occurrences that carry a seam or a hyphen join) and `class`
+    # (one row per unit class, named in the `class` column).  `n_tokens` and
+    # the `ops_*` columns are book-level quantities - the baseline's whole
+    # tokenization of the 225 pages - so they are filled on the `overall` rows
+    # only; inside a scope the operator tokens are exactly the units' seams,
+    # which the `seams_*` columns already report.
+    loss_tsv_rows = []
+    for L in loss_rows:
+        b = L["baseline"]
+        book = {"scope": "overall", "class": None, "n_tokens": L["n_tokens"],
+                "unit_kept": L["unit_kept"], "n_units": L["n_units"],
+                "unit_kept_rate": L["unit_kept_rate"],
+                "parts_kept": L["parts_kept"], "n_parts": L["n_parts"],
+                "parts_kept_rate": L["parts_kept_rate"],
+                "seams_kept": L["seams_kept"], "n_seams": L["n_seams"],
+                "seams_kept_rate": L["seams_kept_rate"],
+                "ops_kept": L["ops_kept"], "n_ops": L["n_ops"],
+                "ops_kept_rate": L["ops_kept_rate"]}
+        loss_tsv_rows.append(dict(book, baseline=b))
+        f = L["fused"]
+        loss_tsv_rows.append({
+            "scope": "fused", "baseline": b, "class": None, "n_tokens": None,
+            "unit_kept": f["unit_kept"], "n_units": f["n"],
+            "unit_kept_rate": (f["unit_kept"] / f["n"]) if f["n"] else 0.0,
+            "parts_kept": f["parts_kept"], "n_parts": f["parts"],
+            "parts_kept_rate": ((f["parts_kept"] / f["parts"])
+                                if f["parts"] else 0.0),
+            "seams_kept": f["seams_kept"], "n_seams": f["seams"],
+            "seams_kept_rate": ((f["seams_kept"] / f["seams"])
+                               if f["seams"] else 0.0),
+            "ops_kept": None, "n_ops": None, "ops_kept_rate": None})
+        for c in sorted(L["class_scope"]):
+            v = L["class_scope"][c]
+            loss_tsv_rows.append({
+                "scope": "class", "baseline": b, "class": c, "n_tokens": None,
+                "unit_kept": v["units_kept"], "n_units": v["units"],
+                "unit_kept_rate": ((v["units_kept"] / v["units"])
+                                   if v["units"] else 0.0),
+                "parts_kept": v["parts_kept"], "n_parts": v["parts"],
+                "parts_kept_rate": ((v["parts_kept"] / v["parts"])
+                                    if v["parts"] else 0.0),
+                "seams_kept": v["seams_kept"], "n_seams": v["seams"],
+                "seams_kept_rate": ((v["seams_kept"] / v["seams"])
+                                    if v["seams"] else 0.0),
+                "ops_kept": None, "n_ops": None, "ops_kept_rate": None})
+    # The scopes must add up, or the file would carry rows that do not
+    # reconcile: the `class` rows partition the book, and `fused` + `plain`
+    # equals the overall row.  (`fused` alone is a subset, not a partition:
+    # the fused units of every non-`plain` class plus the `plain` units are
+    # the whole book.)
+    for L in loss_rows:
+        b = L["baseline"]
+        cls_rows = [r for r in loss_tsv_rows
+                    if r["baseline"] == b and r["scope"] == "class"]
+        fus_rows = [r for r in loss_tsv_rows
+                    if r["baseline"] == b and r["scope"] == "fused"]
+        plain_rows = [r for r in cls_rows if r["class"] == "plain"]
+        for key, tot in (("n_units", L["n_units"]),
+                         ("n_parts", L["n_parts"]),
+                         ("n_seams", L["n_seams"]),
+                         ("unit_kept", L["unit_kept"]),
+                         ("parts_kept", L["parts_kept"]),
+                         ("seams_kept", L["seams_kept"])):
+            got = sum(r[key] for r in cls_rows)
+            assert got == tot, f"{b}/class: {key} sums to {got} != overall {tot}"
+            got = sum(r[key] for r in fus_rows + plain_rows)
+            assert got == tot, (
+                f"{b}/fused+plain: {key} sums to {got} != overall {tot}")
 
     # ---- unit type inventory, part index, cases --------------------------
     ut_rows = unit_type_rows(units)
@@ -1838,7 +1941,8 @@ def build(src=SRC, out=OUT, with_ast=True):
         ("units.tsv", "one row per lexical unit (the analyzable unit)"),
         ("unit_types.tsv", "unit type inventory (surface -> n, pages, class)"),
         ("part_index.tsv", "one row per unit part (w / seam / join) with offsets"),
-        ("seam_loss.tsv", "standard-tokenizer comparison, overall + per class"),
+        ("seam_loss.tsv",
+         "standard-tokenizer comparison, overall + fused + per class"),
         ("cases.tsv", "named constructs, page-cited, with all three views"),
         ("case_examples.txt", "readable rendering: context, unit, parts, baselines"),
         ("diagnostics.tsv", "tokenizer pressure ledger"),
@@ -1946,10 +2050,11 @@ def build(src=SRC, out=OUT, with_ast=True):
               "first_page", "first_start", "ast", "page_list"], out)
     dump_tsv("part_index.tsv", part_rows,
              ["uid", "page", "unit", "start", "end", "pos", "role", "text"], out)
-    dump_tsv("seam_loss.tsv", loss_rows,
-             ["baseline", "n_tokens", "unit_kept", "n_units", "unit_kept_rate",
-              "parts_kept", "n_parts", "parts_kept_rate", "seams_kept", "n_seams",
-              "seams_kept_rate", "ops_kept", "n_ops", "ops_kept_rate"], out)
+    dump_tsv("seam_loss.tsv", loss_tsv_rows,
+             ["scope", "baseline", "class", "n_tokens", "unit_kept", "n_units",
+              "unit_kept_rate", "parts_kept", "n_parts", "parts_kept_rate",
+              "seams_kept", "n_seams", "seams_kept_rate", "ops_kept", "n_ops",
+              "ops_kept_rate"], out)
     dump_tsv("named_constructs.tsv", named_rows,
              ["needle", "prior", "prior_src", "prior_recomputed", "raw",
               "whole_unit", "inside_longer_unit", "not_a_unit",

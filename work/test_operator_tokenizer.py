@@ -40,6 +40,19 @@ def unit_texts(text):
     return [u.text for u in units_of(text)[1]]
 
 
+def row_cells(spec_lines, start, prefix):
+    """The cells of the first markdown table row at/after `start` with `prefix`.
+
+    Used to check that a table printed in `tokenizer_spec.md` still carries
+    the numbers the artifacts carry - the #77 failure mode was prose that had
+    drifted from the file.
+    """
+    for line in spec_lines[start:]:
+        if line.startswith("| " + prefix):
+            return [c.strip() for c in line.strip().strip("|").split("|")]
+    raise AssertionError(f"no row starting with {prefix!r} at line {start}")
+
+
 # ---------------------------------------------------------------------------
 class TestSeamRules(unittest.TestCase):
     """The unit grammar on hand-written strings."""
@@ -683,6 +696,179 @@ class TestSeamLoss(unittest.TestCase):
                       if r["class"] in ("plain", "hyp")
                       and r["class"] == "plain")
         self.assertEqual(n_plain + u["fused_occurrences"], u["total"])
+
+    # ---- seam_loss.tsv: the artifact of record for both scopes -------------
+    def _seam_loss_rows(self):
+        """`seam_loss.tsv` as a list of dicts.
+
+        Read with a plain `split("\t")`, per the artifact contract in 8: the
+        corpus carries bare `"` tokens and a quote-aware reader mis-sizes rows.
+        """
+        out = []
+        with open(os.path.join(OUT, "seam_loss.tsv")) as f:
+            head = f.readline().rstrip("\n").split("\t")
+            for line in f:
+                out.append(dict(zip(head, line.rstrip("\n").split("\t"))))
+        return out
+
+    def test_seam_loss_tsv_carries_overall_fused_and_per_class_scopes(self):
+        # the defect that opened #77: the file held only the all-units scope
+        # while the spec advertised "overall + per class".  It now carries the
+        # fused scope too, one row per (scope, baseline).
+        rows = self._seam_loss_rows()
+        self.assertEqual({r["scope"] for r in rows},
+                         {"overall", "fused", "class"})
+        classes = {r["class"] for r in self.S["class_rows"]}
+        self.assertEqual({r["class"] for r in rows if r["scope"] == "class"},
+                         classes)
+        for b in T.BASELINES:
+            got = [(r["scope"], r["class"]) for r in rows
+                   if r["baseline"] == b]
+            self.assertEqual(got[0], ("overall", ""), b)
+            self.assertEqual(got[1], ("fused", ""), b)
+            self.assertEqual([c for _s, c in got[2:]], sorted(classes), b)
+            self.assertEqual(len(got), 2 + len(classes), b)
+
+    def test_fused_scope_is_the_offset_exact_count_not_the_page_bag(self):
+        # the superseded #17 result comment scored the fused scope over a
+        # page-level bag of baseline token *strings*: `ws` 4,538/5,433 units,
+        # 2,471/11,131 parts, 56/2,816 seams.  Those are the numbers the
+        # offset-exact scope deliberately does not publish (a same-page string
+        # elsewhere could stand in for the item), so the row is pinned against
+        # them as well as against the summary.
+        f = self.hdr["ws"]["fused"]
+        row = next(r for r in self._seam_loss_rows()
+                   if r["baseline"] == "ws" and r["scope"] == "fused")
+        self.assertEqual(int(row["n_units"]), f["n"])
+        self.assertEqual(int(row["n_units"]), self.S["units"]["fused_occurrences"])
+        self.assertEqual(int(row["n_parts"]), f["parts"])
+        self.assertEqual(int(row["n_seams"]), f["seams"])
+        self.assertEqual((int(row["unit_kept"]), int(row["parts_kept"]),
+                          int(row["seams_kept"])),
+                         (f["unit_kept"], f["parts_kept"], f["seams_kept"]))
+        self.assertNotEqual(int(row["unit_kept"]), 4538)
+        self.assertNotEqual(int(row["parts_kept"]), 2471)
+        self.assertNotEqual(int(row["seams_kept"]), 56)
+        self.assertAlmostEqual(float(row["unit_kept_rate"]),
+                               f["unit_kept"] / f["n"])
+
+    def test_scope_rows_reconcile_with_the_overall_row(self):
+        rows = self._seam_loss_rows()
+        for b, L in self.hdr.items():
+            own = [r for r in rows if r["baseline"] == b]
+            cls = [r for r in own if r["scope"] == "class"]
+            fused = [r for r in own if r["scope"] == "fused"]
+            plain = [r for r in cls if r["class"] == "plain"]
+            for key, tot in (("n_units", L["n_units"]),
+                             ("n_parts", L["n_parts"]),
+                             ("n_seams", L["n_seams"]),
+                             ("unit_kept", L["unit_kept"]),
+                             ("parts_kept", L["parts_kept"]),
+                             ("seams_kept", L["seams_kept"])):
+                self.assertEqual(sum(int(r[key]) for r in cls), tot,
+                                 f"{b}/class {key}")
+                self.assertEqual(sum(int(r[key]) for r in fused + plain), tot,
+                                 f"{b}/fused+plain {key}")
+            for r in own:
+                for kept, n, rate in (("unit_kept", "n_units", "unit_kept_rate"),
+                                      ("parts_kept", "n_parts", "parts_kept_rate"),
+                                      ("seams_kept", "n_seams",
+                                       "seams_kept_rate")):
+                    if int(r[n]):
+                        self.assertAlmostEqual(float(r[rate]),
+                                               int(r[kept]) / int(r[n]))
+                    else:
+                        # a hyphen-only class holds no operator at all, so its
+                        # seam denominator is 0 and the rate is the printed 0.0
+                        self.assertEqual(int(r[kept]), 0)
+                        self.assertEqual(float(r[rate]), 0.0)
+                # book-level columns are filled on the `overall` row only
+                for col in ("n_tokens", "ops_kept", "n_ops", "ops_kept_rate"):
+                    self.assertEqual(bool(r[col]), r["scope"] == "overall",
+                                     f"{b}/{r['scope']}/{col}")
+            ov = next(r for r in own if r["scope"] == "overall")
+            self.assertEqual(int(ov["n_tokens"]), L["n_tokens"])
+            self.assertEqual(int(ov["ops_kept"]), L["ops_kept"])
+            self.assertEqual(int(ov["n_ops"]), self.S["tokens"]["OP"])
+
+    def test_per_class_rows_agree_with_the_class_seam_summary(self):
+        # the class rows of the file carry the same numbers the per-class table
+        # in the spec prints, so a consumer can use either
+        cls_scope = {b: L["class_scope"] for b, L in self.hdr.items()}
+        for r in self._seam_loss_rows():
+            if r["scope"] != "class":
+                continue
+            v = cls_scope[r["baseline"]][r["class"]]
+            self.assertEqual(int(r["unit_kept"]), v["units_kept"])
+            self.assertEqual(int(r["n_units"]), v["units"])
+            self.assertEqual(int(r["parts_kept"]), v["parts_kept"])
+            self.assertEqual(int(r["n_parts"]), v["parts"])
+            self.assertEqual(int(r["seams_kept"]), v["seams_kept"])
+            self.assertEqual(int(r["n_seams"]), v["seams"])
+
+    def test_spec_tables_agree_with_seam_loss_tsv(self):
+        # #77's defect was a table in prose that disagreed with the artifacts.
+        # Both seam-loss tables in the spec are parsed here and compared cell
+        # by cell with `seam_loss.tsv`, so the two cannot drift apart again.
+        with open(os.path.join(OUT, "tokenizer_spec.md")) as f:
+            spec = f.read().split("\n")
+        rate = re.compile(r"([\d.]+)% \(([\d,]+)/([\d,]+)\)")
+        rows = {(r["baseline"], r["scope"]): r
+                for r in self._seam_loss_rows()}
+        for b in T.BASELINES:
+            ov, fu = rows[(b, "overall")], rows[(b, "fused")]
+            head = ("| baseline | tokens | unit kept | word parts kept | "
+                    "seams kept | operator tokens kept |")
+            cells = row_cells(spec, spec.index(head) + 2, f"`{b}`")
+            self.assertEqual(int(cells[1].replace(",", "")), int(ov["n_tokens"]))
+            got = [rate.search(c) for c in cells[2:]]
+            self.assertTrue(all(got), b)
+            for g, kept, n, want in zip(
+                    got, ("unit_kept", "parts_kept", "seams_kept", "ops_kept"),
+                    ("n_units", "n_parts", "n_seams", "n_ops"),
+                    (float(ov["unit_kept_rate"]), float(ov["parts_kept_rate"]),
+                     float(ov["seams_kept_rate"]), float(ov["ops_kept_rate"]))):
+                self.assertAlmostEqual(float(g.group(1)), want * 100, places=1,
+                                       msg=f"{b} {kept} rate in the spec")
+                self.assertEqual(int(g.group(2).replace(",", "")),
+                                 int(ov[kept]), f"{b} {kept}")
+                self.assertEqual(int(g.group(3).replace(",", "")),
+                                 int(ov[n]), f"{b} {n}")
+            # ... and the fused-scope table below it
+            head = "| baseline | unit kept | word parts kept | seams kept |"
+            cells = row_cells(spec, spec.index(head) + 2, f"`{b}`")
+            got = [rate.search(c) for c in cells[1:]]
+            self.assertTrue(all(got), b)
+            for g, kept, n in zip(got, ("unit_kept", "parts_kept", "seams_kept"),
+                                  ("n_units", "n_parts", "n_seams")):
+                self.assertAlmostEqual(float(g.group(1)),
+                                       int(fu[kept]) / int(fu[n]) * 100,
+                                       places=1,
+                                       msg=f"{b} fused {kept} rate in the spec")
+                self.assertEqual(int(g.group(2).replace(",", "")),
+                                 int(fu[kept]), f"{b} fused {kept}")
+                self.assertEqual(int(g.group(3).replace(",", "")),
+                                 int(fu[n]), f"{b} fused {n}")
+
+    def test_spec_per_class_table_agrees_with_the_class_rows(self):
+        head = ("| class | units | " + " | ".join(f"`{b}`" for b in T.BASELINES)
+                + " |")
+        with open(os.path.join(OUT, "tokenizer_spec.md")) as f:
+            spec = f.read().split("\n")
+        i = spec.index(head) + 2
+        rows = {(r["baseline"], r["class"]): r
+                for r in self._seam_loss_rows() if r["scope"] == "class"}
+        for line in spec[i:]:
+            if not line.startswith("| `"):
+                break
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            cls = cells[0].strip("`")
+            for b, cell in zip(T.BASELINES, cells[2:]):
+                r = rows[(b, cls)]
+                self.assertEqual(int(r["n_units"]),
+                                 int(cells[1].replace(",", "")), cls)
+                self.assertEqual(f"{float(r['unit_kept_rate']) * 100:.0f}%",
+                                 cell, f"{b}/{cls}")
 
     def test_the_metric_is_offset_exact_not_string_membership(self):
         # every published rate is a count over spans.  For the three
