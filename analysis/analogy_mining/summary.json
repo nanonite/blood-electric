@@ -1,0 +1,20 @@
+{
+  "schema": "analogy-mining/1",
+  "source": "#30 accepted single-unit entities + #28 book-only embeddings",
+  "entity_recurrence_floor": 8,
+  "candidate_entities": 34,
+  "four_entity_sets": 46376,
+  "pairings_scored": 139128,
+  "models": [
+    "w2v_book",
+    "ft_book",
+    "glove_book"
+  ],
+  "ranked_equations_written": 100,
+  "top10_completions_all_models": 0,
+  "top10_completions_at_least_two_models": 2,
+  "best_worst_model_full_vocabulary_rank": 60,
+  "best_median_full_vocabulary_rank": 4,
+  "ranking": "median within-model empirical percentile of oriented pair-offset cosine; ties by weakest-model percentile and mean cosine",
+  "meaning": "distributional candidates for human interpretation, not semantic definitions"
+}

@@ -431,6 +431,7 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Analogy and metaphor mining (#45)
 - Harden corpus cache reproducibility and text normalization (#80)
 - Human jury / reader study design (#75)
 - Back-translation harness (#74)
