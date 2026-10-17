@@ -503,6 +503,8 @@ All notable changes in this workspace. The project decodes Kenji Siratori's *Blo
 ## [0.1.0] — 2026-10-06
 
 ### Changed
+- Evaluate and curate an optional legal abstract reference corpus (#79)
+- Evaluate and curate an optional medical abstract reference corpus (#78)
 - Reconcile #17 tokenizer evaluation numbers (single source of truth) (#77)
 - Genre/prior dossier (#60)
 - Burstiness and Heaps' law (#53)

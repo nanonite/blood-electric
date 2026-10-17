@@ -45,9 +45,11 @@ README. It is false for most of the records.
 `term=disease[Title]`, `retmax=1000`, `sort=pub_date`, then `efetch`
 (`rettype=abstract`, `retmode=text`) in batches of 200 ids.
 
-**Record selection.** The 1,000 records are the most recent MEDLINE records
-with "disease" in the title at fetch time. The selection rule is arbitrary
-but explicit; what makes it usable is that the *sample itself* is pinned:
+**Record selection.** The 1,000 records are the newest PubMed records returned
+for `disease[Title]` at fetch time. This query does not add PubMed's
+`medline[sb]` subset filter, so the sample is not described as exclusively
+MEDLINE-indexed. The selection rule is arbitrary but explicit; what makes it
+usable is that the *sample itself* is pinned:
 the corpus bytes live in `analysis/reference_corpora/medical/` and their
 SHA-256 is recorded in `manifest.tsv` as an `observed_checksum`, which #80's
 drift mechanism treats as the file's expected pin — a rebuild that produces
