@@ -14,6 +14,98 @@ transform**. Where scholars of alien signals (Beguš, *The Next Theory of Evolut
 to reveal latent structure, this workspace does the same to Siratori: characterize the transform,
 strip it, and re-embed the residue in meaning-space.
 
+## Research conclusions
+
+> **Short answer.**
+> *Blood Electric* has repeatable linguistic structure, a recurring world and cast, and a forceful set of images. It does **not** yield a single decoded message or a dependable scene-by-scene plot. The best supported reading is a cybernetic body horror myth: reproduction, infection, machinery, violence, and spiritual language continually transform one another. Its ending returns almost verbatim to its opening. The result is an experience of a world caught in transformation, rather than a solved mystery.
+
+This section synthesizes the completed Blood Electric research workspace. **Measured** means a result of a stated procedure on the 225-page scanned/OCR corpus. **Interpretation** means a reading those results make plausible. The book has no known ground-truth translation, and its OCR still contains disclosed artifacts. Linked project reports provide the source evidence; page numbers refer to the project's scan/page map.
+
+### Direct answers
+
+| Question | Best answer | Evidential strength |
+|---|---|---|
+| Is there something esoteric to glean? | Yes, as symbolic material: creation, soul, angels, Babel, zero, 666, and Buddhist-sounding figures are recombined with code, genetics, and damaged bodies. A hidden occult cipher, stable doctrine, or ritual sequence was **not** established. | Strong for the vocabulary; interpretive for its metaphysics. |
+| Is it “neuralese”? | **No in the technical sense.** Neuralese names learned internal/vector communication between neural agents. This is a printed text published under Kenji Siratori’s name in 2002, overwhelmingly made from English words and compounds. It can *feel* like a machine-body hybrid voice, which makes “neuralese” a useful analogy if labelled as one. | Strong distinction; analogy is interpretive. |
+| Was there a plot? | There is a cast, settings, recurrent antagonisms, and extractable event fragments. The evidence does not establish a sustained, reliable causal sequence. The jacket supplies more conventional plot than the book's own passages support. | Strong for recurring elements; limited for event order and causality. |
+| Did it reach an insight or conclusion? | It repeatedly stages the erosion of boundaries between organism, machine, data, language, and self. The near-verbatim return of the opening near the end supplies a formal ending without resolving those tensions. This is a thematic reading, not a proposition proved by the book. | Moderate interpretation, grounded in repeated textual patterns. |
+
+### What can be stated with confidence
+
+#### 1. The surface is altered English with a real, shallow grammar
+
+The coverage ledger accounts for **480,962 page-body characters, 90,220 tokens, 11,000 operator tokens, and 74,665 unit occurrences**. Of those units, **66,506** are classified as ordinary English occurrences, **6,736** as compounds of English parts, and **338** as true coinage occurrences. These categories are an analysis of this OCR edition, not a universal claim about every possible edition. See [coverage and residue](analysis/coverage_ledger/coverage_ledger_report.md) and [neologisms](analysis/neologism/neologism_report.md).
+
+The punctuation has measurable functions: `//` often separates utterances, `::` fields, `=` names or binds, and `<<…>>` frames spans. A full parser and an operator-aware tokenizer preserve both the surface and its parts. Held-out operator prediction improves on a unigram baseline, although single-choice accuracy barely improves; the grammar is **predictive in probability and shallow**, not a secret programming language. See [Rosetta mapping](analysis/rosetta/rosetta_report.md), [held-out validity](analysis/heldout_validity/heldout_validity_report.md), and [operator-word association](analysis/operator_word_mi/operator_domain_mi_report.md).
+
+The intrinsic language assessment passed its six predeclared checks for transferable word order, operator order, frames, recurring vocabulary, stable collocates, and compound parts: its own verdict is **“VIABLE (BOUNDED).”** This means one part of the book helps predict another. It does **not** mean every clause has a recoverable literal meaning. See [within-text viability](analysis/language_viability/language_viability_report.md).
+
+#### 2. Its strongest subject is transformation of bodies into systems
+
+The genre probes find unusually dense vocabulary of **reproduction, violence, machines, digital media, and organs**. Machine and organ terms share clauses above a within-book placement expectation; so do reproductive and grotesque terms. Corporate infrastructure and metal are present but relatively thin. The project therefore supports a “cyberpunk of the body” reading more strongly than a corporate intrigue or metal-fusion reading. This is a measured register profile followed by an interpretation, not proof of an influence. See [genre/prior dossier](analysis/genre_prior/dossier.md).
+
+Topic, network, and embedding methods converge strongly on **6 of 39** tested motifs, partially on 19, and diverge on 12; two are too sparse to test. The robust core includes **ice nebula, entrails, artificial sun, cold-blooded, cyclops, and drug embryo**. The six analyst-defined broad domains (body, machine, genetics, sex, violence, corporate) do **not** converge as natural divisions of the book. The motifs cross those domains. See [triangulation](analysis/triangulation/triangulation_report.md).
+
+Affect analysis finds fear, ecstasy, paranoia, and disgust vocabulary elevated relative to the chosen English prose comparison, with negative valence overall. It detects local clusters of intense language, **not a clear emotional rise and fall over the book**. Its lexicon and encoder are analyst choices, so it is evidence about the text's register rather than a diagnosis of what a reader must feel. See [affect report](analysis/affect/affect_report.md).
+
+#### 3. The “loop” is a return and a habit of recurrence
+
+Pages **4–7** return near the end as pages **220–223** with roughly **98% raw-text identity** in the analyzed corpus. Repeated formulas and small thematic blocks also recur elsewhere. That is the strongest concrete evidence for the book's advertised loop. See [self-similarity](analysis/self_similarity/self_similarity_report.md) and [surprisal](analysis/ngram_surprisal/ngram_surprisal_report.md).
+
+The operator stream itself has **no established fixed periodic beat**. Once 732 operators inside OCR/HTML markup spans are excluded, its spectral flatness is close to the white-noise reference and its leading peak is not significant. None of the 45 tested motif/domain page series establishes a cycle either. The repetition is lexical, thematic, and in one case near-verbatim; it is not a metrical code. See [periodicity](analysis/periodicity/periodicity_report.md) and [triangulation](analysis/triangulation/triangulation_report.md).
+
+### Was there a plot?
+
+**There is a narrative situation, but the research did not recover a conventional plot.** ADAM/ADAM Doll, retro-ADAM, ToKAGE, the dog, “self,” Cadaver City, Placenta World, and Sato Corporation recur across the book. A rule-based reconstruction links **2,792 mentions** to **4,829 candidate events**; only **501** have both an actor and a target under its local rule. These are useful cited leads. They are not a full syntactic parse, and the rule can mistake a nearby noun for an agent or an ordinary noun for a verb. See [narrative reconstruction](analysis/narrative/narrative_report.md).
+
+The jacket synopsis is a useful stress test. Its first claim about ADAM Doll and Cadaver City is fully supported under the project's element checks. Its other four plot claims are partial. A stricter role check finds **six of nine** jacket roles evidenced, **two uncertain**, and **one refuted by its stated probes**: Super Cherry 666 appears, but the book's measured hunting event belongs to ToKAGE, not that figure. The named world is real; the jacket's exact actions cannot be read back wholesale. An absent match can also reflect the limits of the event extractor. See [synopsis check](analysis/narrative/narrative_report.md) and [entity roles](analysis/entity_roles/roles_report.md).
+
+A cautious one-paragraph account is possible: **a damaged biological/digital world repeatedly produces, controls, infects, and destroys bodies; named beings, corporations, animals, and places return inside those transformations; the opening language returns at the end.** That is a story *field*, not a sequence of confirmed plot beats with resolution. `retro-ADAM` has a bounded middle-book presence (pages 87–176), but the affect analyses find no overall dramatic arc. The near-verbatim ending reinforces recurrence rather than explaining what “really happened.”
+
+### What can an esoteric reading legitimately take from it?
+
+The symbolic vocabulary is unmistakable. **ADAM** evokes first creation but is repeatedly a **Doll**, a made or replicated being. **BABEL**, **angel**, **soul**, **666**, **zero**, **cyberBuddha**, and **dustNirverna** place biblical, apocalyptic, Buddhist-sounding, and null/origin language inside technological and anatomical compounds. `soul/gram`, `machine=angel`, and `gene=TV` show how the book's binding marks fuse spiritual, bodily, and media terms. `zero` is especially productive as a level, physical null point, and naming element; `666` is concentrated in Super Cherry's designator and related apocalyptic images. See [numeric and symbol channel](analysis/numeric_channel/numeric_channel_report.md), [case/designator inventory](analysis/case_emphasis/case_emphasis_report.md), and [KWIC concordance](analysis/kwic/kwic_report.md).
+
+The **best constrained esoteric interpretation** is a kind of inverted creation myth: a “soul” can be recorded, copied, or coupled; an Adam can be manufactured; transcendence is staged through mutation, infection, and broken interfaces rather than a stable spiritual ascent. This reading is **my inference** from repeated terms and their contexts. It describes the work's imagery, not an occult doctrine the analysis discovered. The seed-defined sacred/profane axis separates some clause clusters, but that axis does not by itself prove a theology. See [semantic axes](analysis/semantic_axes/semantic_axes_report.md).
+
+The project found **no evidence for a deciphered occult cipher, numerological key, or consistent ritual instruction**. Numeric forms mostly behave as identifiers, levels, measures, or repeated imagery. The claim “666 is an apocalyptic marker” is an interpretation of a familiar symbol and its contexts; it does not decode a hidden instruction. OCR/HTML contamination can even inflate evocative names such as `cyberBuddha` on page 219, so a raw count is a poor basis for mystical pattern-finding. See [numeric limitations](analysis/numeric_channel/numeric_channel_report.md) and [coverage ledger](analysis/coverage_ledger/coverage_ledger_report.md).
+
+### Is “neuralese” the right name?
+
+In the research meaning, **no**. Andreas, Dragan, and Klein's [“Translating Neuralese” (2017)](https://arxiv.org/abs/1704.06960) uses the term for an *automatically learned communication protocol of numerical vectors between neural agents*, grounded by what those messages cause a listener to believe or do. *Blood Electric* was published in **2002** and presents visible words and punctuation on a page. The project found English vocabulary under a typographic transformation, not evidence of a learned latent-vector protocol or a neural network producing the text.
+
+As an **aesthetic analogy**, “neuralese” catches something: the text can sound like an interface speaking through a body, or a body speaking through a network. But “proto-neuralese” should mean only that a present-day reader can see a resemblance to machine-mediated language. It is not a historical or technical classification. Siratori's [2002 interview](https://nettime.org/Lists-Archives/nettime-l-0208/msg00135.html) speaks of data, flesh, music, and language mutation; it does not specify a text-generating algorithm. His [2026 retrospective](https://note.com/kenjisiratori/n/n32c7bfc7ea59?hl=en) explicitly reads the work through later AI and posthuman contexts while resisting a final fixed meaning. That page warns that its English is **AI translated**, so treat it as retrospective context rather than a precise gloss of the 2002 text.
+
+### What insight does the book offer?
+
+The research supports **thematic propositions**, not a tidy final moral:
+
+1. **A body can be written as an information system.** Genes, screens, channels, organs, code, and reproduction are habitually fused within clauses and compounds. This fusion is one of the strongest measured features of the work.
+2. **Identity is unstable.** ADAM has doll and retro variants; “self” is both recurrent and acted upon; names function like designators in a mutable system. Whether any two designators denote the same character often remains unresolved.
+3. **Language participates in the violence it describes.** Its operators interrupt, bind, and reframe English, while recurring infection and mutation vocabulary makes communication itself feel contagious. This is an interpretation supported by the surface grammar and register counts, and consonant with the author's later account.
+4. **There may be no final outside vantage point.** The near-verbatim opening return gives the reader the same language again instead of a reveal. The book's form performs recurrence and unstable interpretation; it offers no measured, final explanation of its world.
+
+These are claims a reader can test against passages. They are not predictions the study verified about future AI, biology, or society. The strongest critical claim is about *how the book makes meaning*: it repeatedly forces spiritual, biological, and computational vocabularies to share the same scene, then denies the reader an easy causal or theological map.
+
+### What the project did and did not translate
+
+The [interlinear edition](analysis/interlinear/interlinear_report.md) renders **all 5,614 clauses** as source, operator-normalized reading, and cautious English gloss. **99.5% of word tokens keep an identity reading**; 49 curated coinage types receive plain readings and four word tokens remain unresolved. The full-book output therefore makes structure inspectable and local meanings negotiable. It is not a fluent English novel hiding under the symbols.
+
+Five LLM prompt strategies were tried on **five sampled clauses**, producing 25 readings. Fifteen passed their strategy-specific mechanical constraints; passing did not certify literary or semantic fidelity. Four of the five passages contained disagreements between compliant readings. Compression and language-model rankings disagree about which normalization is “best”; those scores measure predictability, not truth. See [glossing](analysis/glossing/glossing_report.md), [disagreement map](analysis/committee/disagreement_map.md), and [reading compression](analysis/reading_compression/reading_compression_report.md).
+
+The [reader-study protocol](analysis/reader_study/reader_study_report.md) is complete, but its pilot ratings are **simulated**. No readers judged fidelity. Short quotations from a Russian translation preserve the operator symbols in the aligned examples, which supports treating the punctuation as part of the work, but the full parallel translation was unavailable for this study. See [translation acquisition](analysis/translation_oracle/availability_report.md).
+
+### Reading discipline and limits
+
+- Treat a frequency, an embedding axis, or a cluster label as a lead, then inspect its cited passages. Even independent methods strongly agreed on only a minority of tested motifs.
+- Keep the OCR residue visible. The project itemized every token, but “accounted for” means classified or disclosed, **not** semantically understood. Some OCR loops and HTML tags produced false peaks before screening.
+- Do not turn the jacket's synopsis into the book's plot or an evocative name into a decoded esoteric system.
+- Separate three voices: the 2002 book, Siratori's interviews and later retrospective, and this project's computational/critical reading. None is a substitute for the others.
+- A full human reading or reader study could change the interpretation. This project established a reproducible base and bounded conclusions, not universal agreement on meaning.
+
+> **Final judgement.**
+> *Blood Electric* is structured enough to read and resistant enough to keep interpretation open. Its strongest recoverable “message” is enacted by the writing itself: bodies, signs, machines, and selves are repeatedly made interchangeable, damaged, and remade. Its occult-looking symbols are part of that mythic pressure. Its plot is a recurring conflict field with a literal return, not a securely reconstructed adventure. Calling it neuralese works as a metaphor for a twenty-first-century reader, not as a technical finding about how the 2002 book was made.
+
 ## Layout
 
 ```
